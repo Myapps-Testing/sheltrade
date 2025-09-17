@@ -1,109 +1,153 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { WalletBalance } from "@/components/dashboard/WalletBalance";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
 import { QuickActions } from "@/components/dashboard/QuickActions";
 import { GiftCardGrid } from "@/components/giftcards/GiftCardGrid";
-import { Wallet, TrendingUp, CreditCard, Users, Gift } from "lucide-react";
+import { FundModal } from "@/components/transactions/FundModal";
+import { BuyGiftCardModal } from "@/components/giftcards/BuyGiftCardModal";
+import { Wallet, TrendingUp, Gift, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import giftCardsImage from "@/assets/gift-cards.jpg";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Dashboard() {
   const [currentView, setCurrentView] = useState("dashboard");
+  const [fundModalOpen, setFundModalOpen] = useState(false);
+  const [fundModalType, setFundModalType] = useState<'add' | 'withdraw'>('add');
+  const [giftCardModalOpen, setGiftCardModalOpen] = useState(false);
+  const [selectedGiftCard, setSelectedGiftCard] = useState<any>(null);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [giftCards, setGiftCards] = useState<any[]>([]);
+  const [stats, setStats] = useState({
+    totalTransactions: 0,
+    giftCardsSold: 0,
+    activeSessions: 1023
+  });
 
-  // Mock user data
-  const user = {
-    name: "John Doe",
-    email: "john.doe@example.com",
-    avatar: "/placeholder-avatar.jpg"
+  const { user: authUser, profile, wallet, signOut } = useAuth();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (authUser) {
+      loadTransactions();
+      loadGiftCards();
+      loadStats();
+    }
+  }, [authUser]);
+
+  const loadTransactions = async () => {
+    if (!authUser) return;
+    
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('user_id', authUser.id)
+      .order('created_at', { ascending: false })
+      .limit(10);
+    
+    if (error) {
+      console.error('Error loading transactions:', error);
+    } else {
+      setTransactions(data || []);
+    }
   };
 
-  // Mock transaction data
-  const transactions = [
-    {
-      id: "1",
-      type: "credit" as const,
-      amount: 250.00,
-      currency: "USD",
-      description: "Gift card sale - Amazon",
-      timestamp: new Date().toISOString(),
-      status: "completed" as const
-    },
-    {
-      id: "2",
-      type: "debit" as const,
-      amount: 50.00,
-      currency: "USD",
-      description: "Mobile top-up",
-      timestamp: new Date(Date.now() - 3600000).toISOString(),
-      status: "completed" as const
-    },
-    {
-      id: "3",
-      type: "giftcard" as const,
-      amount: 100.00,
-      currency: "USD",
-      description: "iTunes Gift Card Purchase",
-      timestamp: new Date(Date.now() - 7200000).toISOString(),
-      status: "pending" as const
+  const loadGiftCards = async () => {
+    const { data, error } = await supabase
+      .from('giftcards')
+      .select('*')
+      .eq('is_active', true)
+      .order('brand');
+    
+    if (error) {
+      console.error('Error loading gift cards:', error);
+    } else {
+      setGiftCards(data || []);
     }
-  ];
+  };
 
-  // Mock gift card data
-  const featuredGiftCards = [
-    {
-      id: "1",
-      brand: "Amazon",
-      denomination: 25,
-      currency: "USD",
-      discount: 5,
-      rating: 4.8,
-      image: giftCardsImage,
-      popular: true,
-      category: "E-commerce"
-    },
-    {
-      id: "2",
-      brand: "iTunes",
-      denomination: 50,
-      currency: "USD",
-      rating: 4.9,
-      image: giftCardsImage,
-      category: "Entertainment"
-    },
-    {
-      id: "3",
-      brand: "Google Play",
-      denomination: 100,
-      currency: "USD",
-      discount: 3,
-      rating: 4.7,
-      image: giftCardsImage,
-      category: "Entertainment"
-    },
-    {
-      id: "4",
-      brand: "Steam",
-      denomination: 20,
-      currency: "USD",
-      rating: 4.6,
-      image: giftCardsImage,
-      popular: true,
-      category: "Gaming"
-    }
-  ];
+  const loadStats = async () => {
+    if (!authUser) return;
+    
+    const { data: transactionCount } = await supabase
+      .from('transactions')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', authUser.id);
+    
+    const { data: giftCardCount } = await supabase
+      .from('transactions')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', authUser.id)
+      .eq('type', 'giftcard_purchase');
+    
+    setStats({
+      totalTransactions: transactionCount?.length || 0,
+      giftCardsSold: giftCardCount?.length || 0,
+      activeSessions: 1023
+    });
+  };
+
+  const user = profile ? {
+    name: `${profile.first_name} ${profile.last_name}`,
+    email: authUser?.email || '',
+    avatar: profile.avatar_url
+  } : null;
 
   const handleQuickAction = (action: string) => {
-    console.log("Quick action:", action);
-    // Here you would handle the routing or modal opening for each action
+    switch (action) {
+      case 'add_funds':
+        setFundModalType('add');
+        setFundModalOpen(true);
+        break;
+      case 'withdraw':
+        setFundModalType('withdraw');
+        setFundModalOpen(true);
+        break;
+      case 'buy_giftcard':
+        setCurrentView('giftcards');
+        break;
+      case 'crypto':
+        toast({
+          title: "Coming Soon",
+          description: "Cryptocurrency trading will be available soon!",
+        });
+        break;
+      case 'bills':
+        toast({
+          title: "Coming Soon", 
+          description: "Bill payments will be available soon!",
+        });
+        break;
+      case 'mobile_topup':
+        toast({
+          title: "Coming Soon",
+          description: "Mobile top-up will be available soon!",
+        });
+        break;
+      default:
+        console.log("Quick action:", action);
+    }
   };
 
   const handleGiftCardSelect = (card: any) => {
-    console.log("Selected gift card:", card);
-    // Here you would handle gift card purchase flow
+    setSelectedGiftCard(card);
+    setGiftCardModalOpen(true);
+  };
+
+  const handleLogout = async () => {
+    const { error } = await signOut();
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to sign out. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const notifications = [
@@ -129,7 +173,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
           title="Total Balance"
-          value="$2,350.00"
+          value={wallet ? `$${wallet.balance.toFixed(2)}` : "$0.00"}
           change="+12.5% from last month"
           changeType="positive"
           icon={Wallet}
@@ -137,21 +181,21 @@ export default function Dashboard() {
         />
         <StatsCard
           title="Total Transactions"
-          value="156"
+          value={stats.totalTransactions.toString()}
           change="+8.2% from last month"
           changeType="positive"
           icon={TrendingUp}
         />
         <StatsCard
           title="Gift Cards Sold"
-          value="23"
+          value={stats.giftCardsSold.toString()}
           change="+15.3% from last month"
           changeType="positive"
           icon={Gift}
         />
         <StatsCard
           title="Active Sessions"
-          value="1,023"
+          value={stats.activeSessions.toLocaleString()}
           change="-2.1% from last month"
           changeType="negative"
           icon={Users}
@@ -161,7 +205,11 @@ export default function Dashboard() {
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
-          <WalletBalance balance={2350.00} currency="USD" pendingBalance={125.50} />
+          <WalletBalance 
+            balance={wallet?.balance || 0} 
+            currency={wallet?.currency || "USD"} 
+            pendingBalance={0} 
+          />
           <RecentTransactions transactions={transactions} />
         </div>
         
@@ -206,7 +254,7 @@ export default function Dashboard() {
           </Button>
         </div>
         <GiftCardGrid 
-          giftCards={featuredGiftCards} 
+          giftCards={giftCards.slice(0, 4)} 
           onSelectCard={handleGiftCardSelect}
         />
       </div>
@@ -246,25 +294,32 @@ export default function Dashboard() {
       </div>
 
       <GiftCardGrid 
-        giftCards={[...featuredGiftCards, ...featuredGiftCards.map(card => ({
-          ...card,
-          id: card.id + "_2",
-          denomination: card.denomination * 2,
-          popular: false
-        }))]} 
+        giftCards={giftCards} 
         onSelectCard={handleGiftCardSelect}
       />
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar user={user} />
+    <div className="min-h-screen bg-gradient-to-br from-background-start to-background-end">
+      <Navbar user={user} onLogout={handleLogout} />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {currentView === "dashboard" && renderDashboard()}
         {currentView === "giftcards" && renderGiftCards()}
       </main>
+
+      <FundModal 
+        open={fundModalOpen} 
+        onOpenChange={setFundModalOpen} 
+        type={fundModalType} 
+      />
+      
+      <BuyGiftCardModal 
+        open={giftCardModalOpen} 
+        onOpenChange={setGiftCardModalOpen} 
+        giftCard={selectedGiftCard} 
+      />
     </div>
   );
 }

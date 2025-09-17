@@ -18,11 +18,7 @@ import heroImage from "@/assets/hero-finance.jpg";
 import walletImage from "@/assets/wallet-dashboard.jpg";
 import giftCardsImage from "@/assets/gift-cards.jpg";
 
-interface LandingProps {
-  onGetStarted: () => void;
-}
-
-export default function Landing({ onGetStarted }: LandingProps) {
+export function Landing() {
   const features = [
     {
       icon: Wallet,
@@ -104,8 +100,10 @@ export default function Landing({ onGetStarted }: LandingProps) {
             </div>
 
             <div className="flex items-center space-x-3">
-              <Button variant="ghost">Sign In</Button>
-              <Button variant="hero" onClick={onGetStarted}>
+              <Button variant="ghost" onClick={() => window.location.href = '/auth'}>
+                Sign In
+              </Button>
+              <Button variant="financial" onClick={() => window.location.href = '/auth'}>
                 Get Started
               </Button>
             </div>
@@ -134,12 +132,12 @@ export default function Landing({ onGetStarted }: LandingProps) {
               </div>
 
               <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
-                <Button size="lg" variant="hero" onClick={onGetStarted} className="shadow-glow">
+                <Button size="lg" variant="financial" onClick={() => window.location.href = '/auth'} className="shadow-glow">
                   Get Started Free
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
-                <Button size="lg" variant="outline">
-                  Watch Demo
+                <Button size="lg" variant="outline" onClick={() => window.location.href = '/auth'}>
+                  Sign In
                 </Button>
               </div>
 
@@ -301,10 +299,10 @@ export default function Landing({ onGetStarted }: LandingProps) {
               Join thousands of users who trust Sheltrade for their digital financial needs. Get started today and experience the future of financial services.
             </p>
             <div className="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4">
-              <Button size="lg" variant="secondary" onClick={onGetStarted}>
+              <Button size="lg" variant="secondary" onClick={() => window.location.href = '/auth'}>
                 Start Free Trial
               </Button>
-              <Button size="lg" variant="outline" className="border-text-light text-text-light hover:bg-text-light hover:text-navy">
+              <Button size="lg" variant="outline" className="border-text-light text-text-light hover:bg-text-light hover:text-primary-color-1">
                 Contact Sales
               </Button>
             </div>

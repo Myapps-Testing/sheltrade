@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CreditCard, Gift, Smartphone, Zap, Send, Download } from "lucide-react";
+import { Plus, ArrowDownLeft, Gift, TrendingUp, CreditCard, Smartphone } from "lucide-react";
 
 interface QuickActionsProps {
   onAction: (action: string) => void;
@@ -8,48 +8,12 @@ interface QuickActionsProps {
 
 export function QuickActions({ onAction }: QuickActionsProps) {
   const actions = [
-    {
-      id: "buy-giftcard",
-      label: "Buy Gift Card",
-      icon: Gift,
-      description: "Purchase gift cards",
-      color: "bg-primary/10 text-primary hover:bg-primary/20"
-    },
-    {
-      id: "mobile-topup",
-      label: "Mobile Top-up",
-      icon: Smartphone,
-      description: "Recharge mobile phone",
-      color: "bg-accent/10 text-accent hover:bg-accent/20"
-    },
-    {
-      id: "bill-payment",
-      label: "Bill Payment",
-      icon: Zap,
-      description: "Pay utility bills",
-      color: "bg-success/10 text-success hover:bg-success/20"
-    },
-    {
-      id: "send-money",
-      label: "Send Money",
-      icon: Send,
-      description: "Transfer to others",
-      color: "bg-warning/10 text-warning hover:bg-warning/20"
-    },
-    {
-      id: "crypto-exchange",
-      label: "Crypto Exchange",
-      icon: CreditCard,
-      description: "Buy/sell crypto",
-      color: "bg-secondary/20 text-secondary-foreground hover:bg-secondary/30"
-    },
-    {
-      id: "statement",
-      label: "Download Statement",
-      icon: Download,
-      description: "Get transaction history",
-      color: "bg-muted/50 text-muted-foreground hover:bg-muted/70"
-    }
+    { id: 'add_funds', label: 'Add Funds', icon: Plus, color: 'bg-success/10 text-success hover:bg-success/20' },
+    { id: 'withdraw', label: 'Withdraw', icon: ArrowDownLeft, color: 'bg-warning/10 text-warning hover:bg-warning/20' },
+    { id: 'buy_giftcard', label: 'Gift Cards', icon: Gift, color: 'bg-purple-500/10 text-purple-500 hover:bg-purple-500/20' },
+    { id: 'crypto', label: 'Crypto', icon: TrendingUp, color: 'bg-orange-500/10 text-orange-500 hover:bg-orange-500/20' },
+    { id: 'bills', label: 'Pay Bills', icon: CreditCard, color: 'bg-blue-500/10 text-blue-500 hover:bg-blue-500/20' },
+    { id: 'mobile_topup', label: 'Mobile Top-up', icon: Smartphone, color: 'bg-green-500/10 text-green-500 hover:bg-green-500/20' }
   ];
 
   return (
@@ -63,14 +27,11 @@ export function QuickActions({ onAction }: QuickActionsProps) {
             <Button
               key={action.id}
               variant="ghost"
-              className={`h-auto p-4 flex flex-col space-y-2 ${action.color} transition-all`}
+              className={`h-auto p-4 flex flex-col space-y-2 ${action.color} transition-all hover-scale`}
               onClick={() => onAction(action.id)}
             >
               <action.icon className="w-6 h-6" />
-              <div className="text-center">
-                <p className="font-medium text-sm">{action.label}</p>
-                <p className="text-xs opacity-70">{action.description}</p>
-              </div>
+              <span className="text-sm font-medium">{action.label}</span>
             </Button>
           ))}
         </div>

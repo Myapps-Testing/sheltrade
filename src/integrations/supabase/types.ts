@@ -14,7 +14,209 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      giftcards: {
+        Row: {
+          brand: string
+          category: string
+          created_at: string
+          currency: string
+          denomination: number
+          discount_percentage: number | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          stock_quantity: number
+          updated_at: string
+        }
+        Insert: {
+          brand: string
+          category: string
+          created_at?: string
+          currency?: string
+          denomination: number
+          discount_percentage?: number | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          stock_quantity?: number
+          updated_at?: string
+        }
+        Update: {
+          brand?: string
+          category?: string
+          created_at?: string
+          currency?: string
+          denomination?: number
+          discount_percentage?: number | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          stock_quantity?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          first_name: string
+          id: string
+          last_name: string
+          updated_at: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          first_name: string
+          id?: string
+          last_name: string
+          updated_at?: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          updated_at?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          description: string | null
+          id: string
+          metadata: Json | null
+          status: string
+          type: string
+          updated_at: string
+          user_id: string
+          wallet_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          status?: string
+          type: string
+          updated_at?: string
+          user_id: string
+          wallet_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          status?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_giftcards: {
+        Row: {
+          code: string
+          expires_at: string | null
+          giftcard_id: string
+          id: string
+          purchased_at: string
+          status: string
+          transaction_id: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          code: string
+          expires_at?: string | null
+          giftcard_id: string
+          id?: string
+          purchased_at?: string
+          status?: string
+          transaction_id: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          code?: string
+          expires_at?: string | null
+          giftcard_id?: string
+          id?: string
+          purchased_at?: string
+          status?: string
+          transaction_id?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_giftcards_giftcard_id_fkey"
+            columns: ["giftcard_id"]
+            isOneToOne: false
+            referencedRelation: "giftcards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_giftcards_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wallets: {
+        Row: {
+          balance: number
+          created_at: string
+          currency: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

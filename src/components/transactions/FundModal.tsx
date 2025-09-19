@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
-import { CreditCard, DollarSign, Building2, Smartphone } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { CreditCard, DollarSign, Building2, Smartphone, Plus } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -16,11 +17,28 @@ interface FundModalProps {
   type: 'add' | 'withdraw';
 }
 
-const paymentMethods = [
+const depositMethods = [
   { id: 'card', name: 'Credit/Debit Card', icon: CreditCard },
-  { id: 'bank', name: 'Bank Transfer', icon: Building2 },
+  { id: 'bank_transfer', name: 'Bank Transfer', icon: Building2 },
+  { id: 'bank_deposit', name: 'Bank Deposit (Paystack)', icon: Building2 },
   { id: 'mobile', name: 'Mobile Money', icon: Smartphone },
 ];
+
+interface BankDetail {
+  id: string;
+  bank_name: string;
+  account_name: string;
+  account_number: string;
+  account_type: string;
+}
+
+interface WithdrawalAccount {
+  id: string;
+  bank_name: string;
+  account_name: string;
+  account_number: string;
+  account_type: string;
+}
 
 export function FundModal({ open, onOpenChange, type }: FundModalProps) {
   const { user, wallet, refreshWallet } = useAuth();
@@ -28,6 +46,81 @@ export function FundModal({ open, onOpenChange, type }: FundModalProps) {
   const [amount, setAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  // Bank details for deposits
+  const [bankDetails, setBankDetails] = useState<BankDetail[]>([]);
+  const [selectedBankDetail, setSelectedBankDetail] = useState('');
+  
+  // Withdrawal account management
+  const [withdrawalAccounts, setWithdrawalAccounts] = useState<WithdrawalAccount[]>([]);
+  const [selectedWithdrawalAccount, setSelectedWithdrawalAccount] = useState('');
+  const [showNewAccountForm, setShowNewAccountForm] = useState(false);
+  const [newAccount, setNewAccount] = useState({
+    bank_name: '',
+    account_name: '',
+    account_number: '',
+    account_type: 'savings'
+  });
+
+  useEffect(() => {
+    if (open) {
+      if (type === 'add') {
+        loadBankDetails();
+      } else {
+        loadWithdrawalAccounts();
+      }
+    }
+  }, [open, type]);
+
+  const loadBankDetails = async () => {
+    const { data, error } = await supabase
+      .from('sheltradeadmin_bankdetail')
+      .select('*')
+      .eq('is_active', true)
+      .order('bank_name');
+    
+    if (error) {
+      console.error('Error loading bank details:', error);
+    } else {
+      setBankDetails(data || []);
+    }
+  };
+
+  const loadWithdrawalAccounts = async () => {
+    if (!user) return;
+    
+    const { data, error } = await supabase
+      .from('wallet_withdrawal')
+      .select('bank_name, account_name, account_number, account_type')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error loading withdrawal accounts:', error);
+    } else {
+      // Remove duplicates based on account number
+      const uniqueAccounts = data?.reduce((acc: WithdrawalAccount[], curr) => {
+        if (!acc.find(account => account.account_number === curr.account_number)) {
+          acc.push({
+            id: curr.account_number, // Using account number as ID for uniqueness
+            ...curr
+          });
+        }
+        return acc;
+      }, []) || [];
+      setWithdrawalAccounts(uniqueAccounts);
+    }
+  };
+
+  const generateNarration = (amount: number, bankDetail?: BankDetail) => {
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/[-:]/g, '');
+    const reference = `SHT${timestamp}${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
+    
+    if (bankDetail) {
+      return `Deposit of $${amount} to ${bankDetail.bank_name} (${bankDetail.account_number}) - Ref: ${reference}`;
+    }
+    return `Deposit of $${amount} via Paystack - Ref: ${reference}`;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,52 +139,114 @@ export function FundModal({ open, onOpenChange, type }: FundModalProps) {
         return;
       }
 
-      if (type === 'withdraw' && numAmount > wallet.balance) {
+      if (type === 'withdraw') {
+        if (numAmount > wallet.balance) {
+          toast({
+            title: "Insufficient Funds",
+            description: "You don't have enough balance for this withdrawal",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        // Handle withdrawal
+        let accountDetails = newAccount;
+        if (selectedWithdrawalAccount && !showNewAccountForm) {
+          const selectedAccount = withdrawalAccounts.find(acc => acc.id === selectedWithdrawalAccount);
+          if (selectedAccount) {
+            accountDetails = selectedAccount;
+          }
+        }
+
+        if (!accountDetails.account_number || !accountDetails.bank_name || !accountDetails.account_name) {
+          toast({
+            title: "Missing Account Details",
+            description: "Please provide complete bank account information",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Save withdrawal record
+        const { error: withdrawalError } = await supabase
+          .from('wallet_withdrawal')
+          .insert({
+            user_id: user.id,
+            wallet_id: wallet.id,
+            amount: numAmount,
+            currency: wallet.currency,
+            bank_name: accountDetails.bank_name,
+            account_name: accountDetails.account_name,
+            account_number: accountDetails.account_number,
+            account_type: accountDetails.account_type,
+            status: 'pending',
+            reference_number: `WD${Date.now()}`
+          });
+
+        if (withdrawalError) throw withdrawalError;
+
         toast({
-          title: "Insufficient Funds",
-          description: "You don't have enough balance for this withdrawal",
-          variant: "destructive",
+          title: "Withdrawal Request Submitted",
+          description: `Your withdrawal request for $${numAmount} has been submitted and is being processed.`,
         });
-        return;
+      } else {
+        // Handle deposit
+        if ((paymentMethod === 'bank_transfer' && !selectedBankDetail) || 
+            (paymentMethod === 'bank_deposit' && !selectedBankDetail)) {
+          toast({
+            title: "Bank Account Required",
+            description: "Please select a bank account for the deposit",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const selectedBank = bankDetails.find(bank => bank.id === selectedBankDetail);
+        const narration = generateNarration(numAmount, selectedBank);
+
+        // Save deposit record
+        const { error: depositError } = await supabase
+          .from('wallet_deposit')
+          .insert({
+            user_id: user.id,
+            wallet_id: wallet.id,
+            amount: numAmount,
+            currency: wallet.currency,
+            deposit_method: paymentMethod,
+            bank_detail_id: selectedBankDetail || null,
+            narration: narration,
+            reference_number: `DP${Date.now()}`,
+            status: 'pending'
+          });
+
+        if (depositError) throw depositError;
+
+        if (paymentMethod === 'bank_deposit') {
+          // For Paystack integration (placeholder for now)
+          toast({
+            title: "Redirecting to Payment",
+            description: "You will be redirected to complete your payment via Paystack.",
+          });
+        } else {
+          toast({
+            title: "Deposit Instructions",
+            description: `Please use this narration when making your deposit: ${narration}`,
+          });
+        }
       }
 
-      // Create transaction record
-      const { error: transactionError } = await supabase
-        .from('transactions')
-        .insert({
-          user_id: user.id,
-          wallet_id: wallet.id,
-          type: type === 'add' ? 'deposit' : 'withdrawal',
-          amount: numAmount,
-          currency: wallet.currency,
-          description: `${type === 'add' ? 'Deposit' : 'Withdrawal'} via ${paymentMethod}`,
-          status: 'completed',
-          metadata: { payment_method: paymentMethod }
-        });
-
-      if (transactionError) throw transactionError;
-
-      // Update wallet balance
-      const newBalance = type === 'add' ? 
-        wallet.balance + numAmount : 
-        wallet.balance - numAmount;
-
-      const { error: walletError } = await supabase
-        .from('wallets')
-        .update({ balance: newBalance })
-        .eq('id', wallet.id);
-
-      if (walletError) throw walletError;
-
-      await refreshWallet();
-
-      toast({
-        title: `${type === 'add' ? 'Deposit' : 'Withdrawal'} Successful`,
-        description: `Successfully ${type === 'add' ? 'added' : 'withdrew'} $${numAmount} ${type === 'add' ? 'to' : 'from'} your account`,
-      });
-
+      // Reset form
       setAmount('');
       setPaymentMethod('');
+      setSelectedBankDetail('');
+      setSelectedWithdrawalAccount('');
+      setShowNewAccountForm(false);
+      setNewAccount({
+        bank_name: '',
+        account_name: '',
+        account_number: '',
+        account_type: 'savings'
+      });
       onOpenChange(false);
     } catch (error) {
       console.error('Transaction error:', error);
@@ -141,56 +296,183 @@ export function FundModal({ open, onOpenChange, type }: FundModalProps) {
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label>Payment Method</Label>
-            <Select value={paymentMethod} onValueChange={setPaymentMethod} required>
-              <SelectTrigger>
-                <SelectValue placeholder="Select payment method" />
-              </SelectTrigger>
-              <SelectContent>
-                {paymentMethods.map((method) => (
-                  <SelectItem key={method.id} value={method.id}>
-                    <div className="flex items-center gap-2">
-                      <method.icon className="w-4 h-4" />
-                      {method.name}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {type === 'add' ? (
+            // Deposit form
+            <>
+              <div className="space-y-2">
+                <Label>Deposit Method</Label>
+                <Select value={paymentMethod} onValueChange={setPaymentMethod} required>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select deposit method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {depositMethods.map((method) => (
+                      <SelectItem key={method.id} value={method.id}>
+                        <div className="flex items-center gap-2">
+                          <method.icon className="w-4 h-4" />
+                          {method.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-          {paymentMethod && (
-            <Card className="animate-fade-in">
-              <CardContent className="p-4">
-                <div className="space-y-3">
-                  <h4 className="font-medium">Payment Details</h4>
-                  {paymentMethod === 'card' && (
-                    <p className="text-sm text-muted-foreground">
-                      Your card will be charged instantly. Funds will be available immediately.
-                    </p>
-                  )}
-                  {paymentMethod === 'bank' && (
-                    <p className="text-sm text-muted-foreground">
-                      Bank transfers may take 1-3 business days to process.
-                    </p>
-                  )}
-                  {paymentMethod === 'mobile' && (
-                    <p className="text-sm text-muted-foreground">
-                      Mobile money transfers are processed instantly.
-                    </p>
-                  )}
+              {(paymentMethod === 'bank_transfer' || paymentMethod === 'bank_deposit') && (
+                <div className="space-y-2">
+                  <Label>Select Bank Account</Label>
+                  <Select value={selectedBankDetail} onValueChange={setSelectedBankDetail} required>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose bank account" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {bankDetails.map((bank) => (
+                        <SelectItem key={bank.id} value={bank.id}>
+                          <div className="flex flex-col">
+                            <span className="font-medium">{bank.bank_name}</span>
+                            <span className="text-sm text-muted-foreground">
+                              {bank.account_name} - {bank.account_number}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              </CardContent>
-            </Card>
+              )}
+
+              {paymentMethod && (
+                <Card className="animate-fade-in">
+                  <CardContent className="p-4">
+                    <div className="space-y-3">
+                      <h4 className="font-medium">Deposit Instructions</h4>
+                      {paymentMethod === 'card' && (
+                        <p className="text-sm text-muted-foreground">
+                          Your card will be charged instantly. Funds will be available immediately.
+                        </p>
+                      )}
+                      {paymentMethod === 'bank_transfer' && selectedBankDetail && (
+                        <div className="text-sm text-muted-foreground space-y-2">
+                          <p>Transfer to the selected bank account and use the generated narration.</p>
+                          {amount && (
+                            <div className="bg-muted/50 p-3 rounded-lg">
+                              <p className="font-mono text-xs break-all">
+                                Narration: {generateNarration(parseFloat(amount), bankDetails.find(b => b.id === selectedBankDetail))}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {paymentMethod === 'bank_deposit' && (
+                        <p className="text-sm text-muted-foreground">
+                          You will be redirected to Paystack to complete your payment securely.
+                        </p>
+                      )}
+                      {paymentMethod === 'mobile' && (
+                        <p className="text-sm text-muted-foreground">
+                          Mobile money transfers are processed instantly.
+                        </p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </>
+          ) : (
+            // Withdrawal form
+            <>
+              <div className="space-y-2">
+                <Label>Bank Account</Label>
+                <div className="space-y-2">
+                  {withdrawalAccounts.length > 0 && !showNewAccountForm && (
+                    <Select value={selectedWithdrawalAccount} onValueChange={setSelectedWithdrawalAccount}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select saved account" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {withdrawalAccounts.map((account) => (
+                          <SelectItem key={account.id} value={account.id}>
+                            <div className="flex flex-col">
+                              <span className="font-medium">{account.bank_name}</span>
+                              <span className="text-sm text-muted-foreground">
+                                {account.account_name} - {account.account_number}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowNewAccountForm(!showNewAccountForm)}
+                    className="w-full"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    {showNewAccountForm ? 'Use Saved Account' : 'Add New Account'}
+                  </Button>
+                </div>
+              </div>
+
+              {(showNewAccountForm || withdrawalAccounts.length === 0) && (
+                <Card className="animate-fade-in">
+                  <CardContent className="p-4 space-y-4">
+                    <h4 className="font-medium">New Bank Account</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Bank Name</Label>
+                        <Input
+                          value={newAccount.bank_name}
+                          onChange={(e) => setNewAccount(prev => ({ ...prev, bank_name: e.target.value }))}
+                          placeholder="Enter bank name"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Account Type</Label>
+                        <Select value={newAccount.account_type} onValueChange={(value) => setNewAccount(prev => ({ ...prev, account_type: value }))}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="savings">Savings</SelectItem>
+                            <SelectItem value="current">Current</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Account Name</Label>
+                      <Input
+                        value={newAccount.account_name}
+                        onChange={(e) => setNewAccount(prev => ({ ...prev, account_name: e.target.value }))}
+                        placeholder="Enter account holder name"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Account Number</Label>
+                      <Input
+                        value={newAccount.account_number}
+                        onChange={(e) => setNewAccount(prev => ({ ...prev, account_number: e.target.value }))}
+                        placeholder="Enter account number"
+                        required
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </>
           )}
 
           <div className="flex gap-3 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
               Cancel
             </Button>
-            <Button type="submit" disabled={loading || !amount || !paymentMethod} className="flex-1">
-              {loading ? 'Processing...' : `${type === 'add' ? 'Add' : 'Withdraw'} Funds`}
+            <Button type="submit" disabled={loading || !amount || (type === 'add' && !paymentMethod)} className="flex-1">
+              {loading ? 'Processing...' : `${type === 'add' ? 'Submit Deposit' : 'Submit Withdrawal'}`}
             </Button>
           </div>
         </form>

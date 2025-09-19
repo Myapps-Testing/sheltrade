@@ -89,6 +89,39 @@ export type Database = {
         }
         Relationships: []
       }
+      sheltradeadmin_bankdetail: {
+        Row: {
+          account_name: string
+          account_number: string
+          account_type: string | null
+          bank_name: string
+          created_at: string
+          id: string
+          is_active: boolean
+          updated_at: string
+        }
+        Insert: {
+          account_name: string
+          account_number: string
+          account_type?: string | null
+          bank_name: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Update: {
+          account_name?: string
+          account_number?: string
+          account_type?: string | null
+          bank_name?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           amount: number
@@ -186,6 +219,131 @@ export type Database = {
             columns: ["transaction_id"]
             isOneToOne: false
             referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wallet_deposit: {
+        Row: {
+          amount: number
+          bank_detail_id: string | null
+          created_at: string
+          currency: string
+          deposit_method: string
+          id: string
+          metadata: Json | null
+          narration: string
+          paystack_reference: string | null
+          reference_number: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          wallet_id: string
+        }
+        Insert: {
+          amount: number
+          bank_detail_id?: string | null
+          created_at?: string
+          currency?: string
+          deposit_method: string
+          id?: string
+          metadata?: Json | null
+          narration: string
+          paystack_reference?: string | null
+          reference_number?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          wallet_id: string
+        }
+        Update: {
+          amount?: number
+          bank_detail_id?: string | null
+          created_at?: string
+          currency?: string
+          deposit_method?: string
+          id?: string
+          metadata?: Json | null
+          narration?: string
+          paystack_reference?: string | null
+          reference_number?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_deposit_bank_detail_id_fkey"
+            columns: ["bank_detail_id"]
+            isOneToOne: false
+            referencedRelation: "sheltradeadmin_bankdetail"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wallet_deposit_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wallet_withdrawal: {
+        Row: {
+          account_name: string
+          account_number: string
+          account_type: string | null
+          amount: number
+          bank_name: string
+          created_at: string
+          currency: string
+          id: string
+          processed_at: string | null
+          reference_number: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          wallet_id: string
+        }
+        Insert: {
+          account_name: string
+          account_number: string
+          account_type?: string | null
+          amount: number
+          bank_name: string
+          created_at?: string
+          currency?: string
+          id?: string
+          processed_at?: string | null
+          reference_number?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          wallet_id: string
+        }
+        Update: {
+          account_name?: string
+          account_number?: string
+          account_type?: string | null
+          amount?: number
+          bank_name?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          processed_at?: string | null
+          reference_number?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_withdrawal_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
             referencedColumns: ["id"]
           },
         ]

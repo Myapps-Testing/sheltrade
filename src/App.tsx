@@ -18,6 +18,16 @@ function App() {
               <Dashboard />
             </ProtectedRoute>
           } />
+          <Route path="/dashboard/deposit" element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/dashboard/withdraw" element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
           <Route path="*" element={<NotFound />} />
         </Routes>
         <Toaster />

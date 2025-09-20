@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Navbar } from "@/components/layout/Navbar";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { WalletBalance } from "@/components/dashboard/WalletBalance";
@@ -16,6 +17,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Dashboard() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [currentView, setCurrentView] = useState("dashboard");
   const [fundModalOpen, setFundModalOpen] = useState(false);
   const [fundModalType, setFundModalType] = useState<'add' | 'withdraw'>('add');
@@ -39,6 +42,17 @@ export default function Dashboard() {
       loadStats();
     }
   }, [authUser]);
+
+  useEffect(() => {
+    // Handle route-based modal opening
+    if (location.pathname === '/dashboard/deposit') {
+      setFundModalType('add');
+      setFundModalOpen(true);
+    } else if (location.pathname === '/dashboard/withdraw') {
+      setFundModalType('withdraw');
+      setFundModalOpen(true);
+    }
+  }, [location.pathname]);
 
   const loadTransactions = async () => {
     if (!authUser) return;
@@ -101,12 +115,10 @@ export default function Dashboard() {
   const handleQuickAction = (action: string) => {
     switch (action) {
       case 'add_funds':
-        setFundModalType('add');
-        setFundModalOpen(true);
+        navigate('/dashboard/deposit');
         break;
       case 'withdraw':
-        setFundModalType('withdraw');
-        setFundModalOpen(true);
+        navigate('/dashboard/withdraw');
         break;
       case 'buy_giftcard':
         setCurrentView('giftcards');
@@ -311,7 +323,12 @@ export default function Dashboard() {
 
       <FundModal 
         open={fundModalOpen} 
-        onOpenChange={setFundModalOpen} 
+        onOpenChange={(open) => {
+          setFundModalOpen(open);
+          if (!open) {
+            navigate('/dashboard');
+          }
+        }} 
         type={fundModalType} 
       />
       

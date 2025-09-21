@@ -221,7 +221,9 @@ export default function Dashboard() {
           <WalletBalance 
             balance={wallet?.balance || 0} 
             currency={wallet?.currency || "USD"} 
-            pendingBalance={0} 
+            pendingBalance={0}
+            onAddFunds={() => navigate('/dashboard/deposit')}
+            onWithdraw={() => navigate('/dashboard/withdraw')}
           />
           <RecentTransactions transactions={transactions} />
         </div>

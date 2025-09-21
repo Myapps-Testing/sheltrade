@@ -8,9 +8,11 @@ interface WalletBalanceProps {
   balance: number;
   currency: string;
   pendingBalance?: number;
+  onAddFunds?: () => void;
+  onWithdraw?: () => void;
 }
 
-export function WalletBalance({ balance, currency = "USD", pendingBalance = 0 }: WalletBalanceProps) {
+export function WalletBalance({ balance, currency = "USD", pendingBalance = 0, onAddFunds, onWithdraw }: WalletBalanceProps) {
   const [showBalance, setShowBalance] = useState(true);
 
   const formatCurrency = (amount: number) => {
@@ -59,15 +61,11 @@ export function WalletBalance({ balance, currency = "USD", pendingBalance = 0 }:
           )}
 
           <div className="flex space-x-3 pt-2">
-            <Button variant="financial" className="flex-1">
+            <Button variant="financial" className="flex-1" onClick={onAddFunds}>
               <Plus className="w-4 h-4 mr-2" />
               Add Funds
             </Button>
-            <Button variant="outline" className="flex-1">
-              <ArrowUpRight className="w-4 h-4 mr-2" />
-              Send
-            </Button>
-            <Button variant="outline" className="flex-1">
+            <Button variant="outline" className="flex-1" onClick={onWithdraw}>
               <ArrowDownLeft className="w-4 h-4 mr-2" />
               Withdraw
             </Button>

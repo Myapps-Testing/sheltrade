@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Wallet, CreditCard, Bell, User, LogOut } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -15,6 +16,7 @@ interface NavbarProps {
 
 export function Navbar({ user, onLogin, onLogout }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const navigate = useNavigate();
 
   return (
     <nav className="bg-card border-b border-border/50 backdrop-blur-sm sticky top-0 z-50 shadow-sm">
@@ -32,18 +34,20 @@ export function Navbar({ user, onLogin, onLogout }: NavbarProps) {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            <a href="#dashboard" className="text-muted-foreground hover:text-primary transition-colors">
-              Dashboard
-            </a>
-            <a href="#wallet" className="text-muted-foreground hover:text-primary transition-colors">
-              Wallet
-            </a>
-            <a href="#giftcards" className="text-muted-foreground hover:text-primary transition-colors">
-              Gift Cards
-            </a>
-            <a href="#transactions" className="text-muted-foreground hover:text-primary transition-colors">
-              Transactions
-            </a>
+            <button onClick={() => navigate('/')} className="text-muted-foreground hover:text-primary transition-colors">
+              Home
+            </button>
+            <button onClick={() => navigate('/about')} className="text-muted-foreground hover:text-primary transition-colors">
+              About
+            </button>
+            <button onClick={() => navigate('/contact')} className="text-muted-foreground hover:text-primary transition-colors">
+              Contact
+            </button>
+            {user && (
+              <button onClick={() => navigate('/dashboard')} className="text-muted-foreground hover:text-primary transition-colors">
+                Dashboard
+              </button>
+            )}
           </div>
 
           {/* User Section */}
@@ -69,10 +73,10 @@ export function Navbar({ user, onLogin, onLogout }: NavbarProps) {
               </>
             ) : (
               <div className="flex items-center space-x-2">
-                <Button variant="ghost" onClick={onLogin}>
+                <Button variant="ghost" onClick={() => navigate('/auth')}>
                   Sign In
                 </Button>
-                <Button variant="financial" onClick={onLogin}>
+                <Button variant="financial" onClick={() => navigate('/auth')}>
                   Get Started
                 </Button>
               </div>
@@ -95,18 +99,20 @@ export function Navbar({ user, onLogin, onLogout }: NavbarProps) {
         {isOpen && (
           <div className="md:hidden py-4 border-t border-border/50">
             <div className="flex flex-col space-y-3">
-              <a href="#dashboard" className="text-muted-foreground hover:text-primary transition-colors px-2 py-1">
-                Dashboard
-              </a>
-              <a href="#wallet" className="text-muted-foreground hover:text-primary transition-colors px-2 py-1">
-                Wallet
-              </a>
-              <a href="#giftcards" className="text-muted-foreground hover:text-primary transition-colors px-2 py-1">
-                Gift Cards
-              </a>
-              <a href="#transactions" className="text-muted-foreground hover:text-primary transition-colors px-2 py-1">
-                Transactions
-              </a>
+              <button onClick={() => navigate('/')} className="text-muted-foreground hover:text-primary transition-colors px-2 py-1 text-left">
+                Home
+              </button>
+              <button onClick={() => navigate('/about')} className="text-muted-foreground hover:text-primary transition-colors px-2 py-1 text-left">
+                About
+              </button>
+              <button onClick={() => navigate('/contact')} className="text-muted-foreground hover:text-primary transition-colors px-2 py-1 text-left">
+                Contact
+              </button>
+              {user && (
+                <button onClick={() => navigate('/dashboard')} className="text-muted-foreground hover:text-primary transition-colors px-2 py-1 text-left">
+                  Dashboard
+                </button>
+              )}
               
               {user ? (
                 <div className="flex items-center justify-between pt-3 border-t border-border/50">
@@ -126,10 +132,10 @@ export function Navbar({ user, onLogin, onLogout }: NavbarProps) {
                 </div>
               ) : (
                 <div className="flex flex-col space-y-2 pt-3 border-t border-border/50">
-                  <Button variant="ghost" onClick={onLogin} className="justify-start">
+                  <Button variant="ghost" onClick={() => navigate('/auth')} className="justify-start">
                     Sign In
                   </Button>
-                  <Button variant="financial" onClick={onLogin}>
+                  <Button variant="financial" onClick={() => navigate('/auth')}>
                     Get Started
                   </Button>
                 </div>

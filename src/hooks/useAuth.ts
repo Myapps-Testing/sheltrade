@@ -33,32 +33,35 @@ export function useAuth() {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Fetch user profile and wallet
-          setTimeout(async () => {
-            try {
-              const [profileResponse, walletResponse] = await Promise.all([
-                supabase
-                  .from('profiles')
-                  .select('*')
-                  .eq('user_id', session.user.id)
-                  .maybeSingle(),
-                supabase
-                  .from('wallets')
-                  .select('*')
-                  .eq('user_id', session.user.id)
-                  .maybeSingle()
-              ]);
+          // Check if email is verified and auto-sign in
+          if (session.user.email_confirmed_at) {
+            // Fetch user profile and wallet
+            setTimeout(async () => {
+              try {
+                const [profileResponse, walletResponse] = await Promise.all([
+                  supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('user_id', session.user.id)
+                    .maybeSingle(),
+                  supabase
+                    .from('wallets')
+                    .select('*')
+                    .eq('user_id', session.user.id)
+                    .maybeSingle()
+                ]);
 
-              if (profileResponse.data) {
-                setProfile(profileResponse.data);
+                if (profileResponse.data) {
+                  setProfile(profileResponse.data);
+                }
+                if (walletResponse.data) {
+                  setWallet(walletResponse.data);
+                }
+              } catch (error) {
+                console.error('Error fetching user data:', error);
               }
-              if (walletResponse.data) {
-                setWallet(walletResponse.data);
-              }
-            } catch (error) {
-              console.error('Error fetching user data:', error);
-            }
-          }, 0);
+            }, 0);
+          }
         } else {
           setProfile(null);
           setWallet(null);

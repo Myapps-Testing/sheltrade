@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Navbar } from "@/components/layout/Navbar";
+import { FloatingChat } from "@/components/chat/FloatingChat";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { WalletBalance } from "@/components/dashboard/WalletBalance";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
@@ -314,7 +315,14 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background-start to-background-end">
-      <Navbar user={user} onLogout={handleLogout} />
+      <Navbar 
+        user={user && profile ? {
+          name: `${profile.first_name} ${profile.last_name}`,
+          email: user.email || '',
+          avatar: profile.avatar_url
+        } : undefined}
+        onLogout={handleLogout}
+      />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {currentView === "dashboard" && renderDashboard()}
@@ -337,6 +345,8 @@ export default function Dashboard() {
         onOpenChange={setGiftCardModalOpen} 
         giftCard={selectedGiftCard} 
       />
+
+      <FloatingChat />
     </div>
   );
 }

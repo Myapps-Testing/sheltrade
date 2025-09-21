@@ -1,3 +1,6 @@
+import { useNavigate } from 'react-router-dom';
+import { Navbar } from '@/components/layout/Navbar';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +22,14 @@ import walletImage from "@/assets/wallet-dashboard.jpg";
 import giftCardsImage from "@/assets/gift-cards.jpg";
 
 export default function Landing() {
+  const navigate = useNavigate();
+  const { user, profile, signOut } = useAuth();
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/');
+  };
+
   const features = [
     {
       icon: Wallet,

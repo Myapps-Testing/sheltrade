@@ -45,6 +45,7 @@ export function FundModal({ open, onOpenChange, type }: FundModalProps) {
   const { toast } = useToast();
   const [amount, setAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
+  const [narration, setNarration] = useState('');
   const [loading, setLoading] = useState(false);
   
   // Bank details for deposits
@@ -202,7 +203,16 @@ export function FundModal({ open, onOpenChange, type }: FundModalProps) {
         }
 
         const selectedBank = bankDetails.find(bank => bank.id === selectedBankDetail);
-        const narration = generateNarration(numAmount, selectedBank);
+        const finalNarration = narration || generateNarration(numAmount, selectedBank);
+        
+        if (!narration && (paymentMethod === 'bank_transfer' || paymentMethod === 'bank_deposit')) {
+          toast({
+            title: "Narration Required",
+            description: "Please enter a narration for your deposit to avoid losing your funds.",
+            variant: "destructive",
+          });
+          return;
+        }
 
         // Save deposit record
         const { error: depositError } = await supabase
@@ -214,7 +224,7 @@ export function FundModal({ open, onOpenChange, type }: FundModalProps) {
             currency: wallet.currency,
             deposit_method: paymentMethod,
             bank_detail_id: selectedBankDetail || null,
-            narration: narration,
+            narration: finalNarration,
             reference_number: `DP${Date.now()}`,
             status: 'pending'
           });
@@ -230,7 +240,7 @@ export function FundModal({ open, onOpenChange, type }: FundModalProps) {
         } else {
           toast({
             title: "Deposit Instructions",
-            description: `Please use this narration when making your deposit: ${narration}`,
+            description: `Please use this narration when making your deposit: ${finalNarration}`,
           });
         }
       }
@@ -238,6 +248,7 @@ export function FundModal({ open, onOpenChange, type }: FundModalProps) {
       // Reset form
       setAmount('');
       setPaymentMethod('');
+      setNarration('');
       setSelectedBankDetail('');
       setSelectedWithdrawalAccount('');
       setShowNewAccountForm(false);
@@ -319,26 +330,42 @@ export function FundModal({ open, onOpenChange, type }: FundModalProps) {
               </div>
 
               {(paymentMethod === 'bank_transfer' || paymentMethod === 'bank_deposit') && (
-                <div className="space-y-2">
-                  <Label>Select Bank Account</Label>
-                  <Select value={selectedBankDetail} onValueChange={setSelectedBankDetail} required>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose bank account" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {bankDetails.map((bank) => (
-                        <SelectItem key={bank.id} value={bank.id}>
-                          <div className="flex flex-col">
-                            <span className="font-medium">{bank.bank_name}</span>
-                            <span className="text-sm text-muted-foreground">
-                              {bank.account_name} - {bank.account_number}
-                            </span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <>
+                  <div className="space-y-2">
+                    <Label>Select Bank Account</Label>
+                    <Select value={selectedBankDetail} onValueChange={setSelectedBankDetail} required>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose bank account" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {bankDetails.map((bank) => (
+                          <SelectItem key={bank.id} value={bank.id}>
+                            <div className="flex flex-col">
+                              <span className="font-medium">{bank.bank_name}</span>
+                              <span className="text-sm text-muted-foreground">
+                                {bank.account_name} - {bank.account_number}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="narration">Narration (Required)</Label>
+                    <Input
+                      id="narration"
+                      value={narration}
+                      onChange={(e) => setNarration(e.target.value)}
+                      placeholder="Enter your deposit narration"
+                      required
+                    />
+                    <p className="text-xs text-destructive">
+                      ⚠️ Warning: If you don't add the correct narration to your deposit, your funds may be lost!
+                    </p>
+                  </div>
+                </>
               )}
 
               {paymentMethod && (

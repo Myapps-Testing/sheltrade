@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { Landing } from "./Landing";
+import Landing from "./Landing";
 
 export default function Index() {
   const { user, loading } = useAuth();

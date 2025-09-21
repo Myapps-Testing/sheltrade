@@ -18,7 +18,7 @@ import heroImage from "@/assets/hero-finance.jpg";
 import walletImage from "@/assets/wallet-dashboard.jpg";
 import giftCardsImage from "@/assets/gift-cards.jpg";
 
-export function Landing() {
+export default function Landing() {
   const features = [
     {
       icon: Wallet,

@@ -5,13 +5,21 @@ import Index from '@/pages/Index';
 import Dashboard from '@/pages/Dashboard';
 import Auth from '@/pages/Auth';
 import NotFound from '@/pages/NotFound';
+import Landing from '@/pages/Landing';
+import About from '@/pages/About';
+import Contact from '@/pages/Contact';
+import License from '@/pages/License';
 
 function App() {
   return (
     <Router>
       <div className="App">
         <Routes>
-          <Route path="/" element={<Index />} />
+          <Route path="/" element={<Landing />} />
+          <Route path="/app" element={<Index />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/license" element={<License />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/dashboard" element={
             <ProtectedRoute>

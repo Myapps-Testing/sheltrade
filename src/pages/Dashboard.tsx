@@ -9,6 +9,7 @@ import { QuickActions } from "@/components/dashboard/QuickActions";
 import { GiftCardGrid } from "@/components/giftcards/GiftCardGrid";
 import { FundModal } from "@/components/transactions/FundModal";
 import { BuyGiftCardModal } from "@/components/giftcards/BuyGiftCardModal";
+import { TransactionManager } from "@/components/admin/TransactionManager";
 import { Wallet, TrendingUp, Gift, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +22,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
   const [currentView, setCurrentView] = useState("dashboard");
+  const [showAdmin, setShowAdmin] = useState(false);
   const [fundModalOpen, setFundModalOpen] = useState(false);
   const [fundModalType, setFundModalType] = useState<'add' | 'withdraw'>('add');
   const [giftCardModalOpen, setGiftCardModalOpen] = useState(false);
@@ -89,21 +91,26 @@ export default function Dashboard() {
   const loadStats = async () => {
     if (!authUser) return;
     
-    const { data: transactionCount } = await supabase
+    const { count: transactionCount } = await supabase
       .from('transactions')
-      .select('id', { count: 'exact', head: true })
+      .select('*', { count: 'exact', head: true })
       .eq('user_id', authUser.id);
     
-    const { data: giftCardCount } = await supabase
+    const { count: giftCardCount } = await supabase
       .from('transactions')
-      .select('id', { count: 'exact', head: true })
+      .select('*', { count: 'exact', head: true })
       .eq('user_id', authUser.id)
       .eq('type', 'giftcard_purchase');
     
+    // Get actual session count from current online users
+    const { count: userCount } = await supabase
+      .from('profiles')
+      .select('*', { count: 'exact', head: true });
+    
     setStats({
-      totalTransactions: transactionCount?.length || 0,
-      giftCardsSold: giftCardCount?.length || 0,
-      activeSessions: 1023
+      totalTransactions: transactionCount || 0,
+      giftCardsSold: giftCardCount || 0,
+      activeSessions: userCount || 0
     });
   };
 
@@ -141,6 +148,9 @@ export default function Dashboard() {
           title: "Coming Soon",
           description: "Mobile top-up will be available soon!",
         });
+        break;
+      case 'admin':
+        setShowAdmin(!showAdmin);
         break;
       default:
         console.log("Quick action:", action);
@@ -273,6 +283,14 @@ export default function Dashboard() {
           onSelectCard={handleGiftCardSelect}
         />
       </div>
+
+      {/* Admin Section */}
+      {showAdmin && (
+        <div className="mt-8">
+          <h2 className="text-2xl font-bold mb-6">Transaction Management</h2>
+          <TransactionManager />
+        </div>
+      )}
     </div>
   );
 

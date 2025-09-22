@@ -33,7 +33,7 @@ export default function Dashboard() {
     activeSessions: 1023
   });
 
-  const { user: authUser, profile, wallet, signOut } = useAuth();
+  const { user: authUser, profile, wallet, signOut, refreshWallet } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -337,6 +337,9 @@ export default function Dashboard() {
           setFundModalOpen(open);
           if (!open) {
             navigate('/dashboard');
+            // Refresh wallet and transactions when modal closes
+            refreshWallet();
+            loadTransactions();
           }
         }} 
         type={fundModalType} 

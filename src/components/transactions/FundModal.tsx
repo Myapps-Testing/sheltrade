@@ -183,8 +183,10 @@ export function FundModal({ open, onOpenChange, type }: FundModalProps) {
           return;
         }
 
+        const referenceNumber = `WD${Date.now()}`;
+
         // Create transaction record for withdrawal
-        const { error: transactionError } = await supabase
+        const { data: transactionData, error: transactionError } = await supabase
           .from('transactions')
           .insert({
             user_id: user.id,
@@ -199,14 +201,16 @@ export function FundModal({ open, onOpenChange, type }: FundModalProps) {
               account_name: accountDetails.account_name,
               account_number: accountDetails.account_number,
               account_type: accountDetails.account_type,
-              reference_number: `WD${Date.now()}`
+              reference_number: referenceNumber
             }
-          });
+          })
+          .select()
+          .single();
 
         if (transactionError) throw transactionError;
 
-        // Save withdrawal record
-        const { error: withdrawalError } = await supabase
+        // Save withdrawal record with transaction link
+        const { data: withdrawalData, error: withdrawalError } = await supabase
           .from('wallet_withdrawal')
           .insert({
             user_id: user.id,
@@ -218,10 +222,21 @@ export function FundModal({ open, onOpenChange, type }: FundModalProps) {
             account_number: accountDetails.account_number,
             account_type: accountDetails.account_type,
             status: 'pending',
-            reference_number: `WD${Date.now()}`
-          });
+            reference_number: referenceNumber,
+            transaction_id: transactionData.id
+          })
+          .select()
+          .single();
 
         if (withdrawalError) throw withdrawalError;
+
+        // Update transaction with withdrawal reference
+        const { error: updateTransactionError } = await supabase
+          .from('transactions')
+          .update({ wallet_withdrawal_id: withdrawalData.id })
+          .eq('id', transactionData.id);
+
+        if (updateTransactionError) throw updateTransactionError;
 
         toast({
           title: "Withdrawal Request Submitted",
@@ -248,8 +263,10 @@ export function FundModal({ open, onOpenChange, type }: FundModalProps) {
           return;
         }
 
+        const referenceNumber = `DP${Date.now()}`;
+
         // Create transaction record for deposit
-        const { error: transactionError } = await supabase
+        const { data: transactionData, error: transactionError } = await supabase
           .from('transactions')
           .insert({
             user_id: user.id,
@@ -263,14 +280,16 @@ export function FundModal({ open, onOpenChange, type }: FundModalProps) {
               deposit_method: paymentMethod,
               bank_detail_id: selectedBankDetail || null,
               narration: narration,
-              reference_number: `DP${Date.now()}`
+              reference_number: referenceNumber
             }
-          });
+          })
+          .select()
+          .single();
 
         if (transactionError) throw transactionError;
 
-        // Save deposit record
-        const { error: depositError } = await supabase
+        // Save deposit record with transaction link
+        const { data: depositData, error: depositError } = await supabase
           .from('wallet_deposit')
           .insert({
             user_id: user.id,
@@ -280,11 +299,22 @@ export function FundModal({ open, onOpenChange, type }: FundModalProps) {
             deposit_method: paymentMethod,
             bank_detail_id: selectedBankDetail || null,
             narration: narration,
-            reference_number: `DP${Date.now()}`,
-            status: 'pending'
-          });
+            reference_number: referenceNumber,
+            status: 'pending',
+            transaction_id: transactionData.id
+          })
+          .select()
+          .single();
 
         if (depositError) throw depositError;
+
+        // Update transaction with deposit reference
+        const { error: updateTransactionError } = await supabase
+          .from('transactions')
+          .update({ wallet_deposit_id: depositData.id })
+          .eq('id', transactionData.id);
+
+        if (updateTransactionError) throw updateTransactionError;
 
         if (paymentMethod === 'bank_deposit') {
           // For Paystack integration (placeholder for now)
@@ -299,6 +329,9 @@ export function FundModal({ open, onOpenChange, type }: FundModalProps) {
           });
         }
       }
+
+      // Refresh wallet to show updated balance if needed
+      await refreshWallet();
 
       // Reset form
       setAmount('');

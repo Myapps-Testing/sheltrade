@@ -133,8 +133,11 @@ export type Database = {
           status: string
           type: string
           updated_at: string
+          user_giftcard_id: string | null
           user_id: string
+          wallet_deposit_id: string | null
           wallet_id: string
+          wallet_withdrawal_id: string | null
         }
         Insert: {
           amount: number
@@ -146,8 +149,11 @@ export type Database = {
           status?: string
           type: string
           updated_at?: string
+          user_giftcard_id?: string | null
           user_id: string
+          wallet_deposit_id?: string | null
           wallet_id: string
+          wallet_withdrawal_id?: string | null
         }
         Update: {
           amount?: number
@@ -159,8 +165,11 @@ export type Database = {
           status?: string
           type?: string
           updated_at?: string
+          user_giftcard_id?: string | null
           user_id?: string
+          wallet_deposit_id?: string | null
           wallet_id?: string
+          wallet_withdrawal_id?: string | null
         }
         Relationships: [
           {
@@ -178,6 +187,7 @@ export type Database = {
           expires_at: string | null
           giftcard_id: string
           id: string
+          main_transaction_id: string | null
           purchased_at: string
           status: string
           transaction_id: string
@@ -189,6 +199,7 @@ export type Database = {
           expires_at?: string | null
           giftcard_id: string
           id?: string
+          main_transaction_id?: string | null
           purchased_at?: string
           status?: string
           transaction_id: string
@@ -200,6 +211,7 @@ export type Database = {
           expires_at?: string | null
           giftcard_id?: string
           id?: string
+          main_transaction_id?: string | null
           purchased_at?: string
           status?: string
           transaction_id?: string
@@ -236,6 +248,7 @@ export type Database = {
           paystack_reference: string | null
           reference_number: string | null
           status: string
+          transaction_id: string | null
           updated_at: string
           user_id: string
           wallet_id: string
@@ -252,6 +265,7 @@ export type Database = {
           paystack_reference?: string | null
           reference_number?: string | null
           status?: string
+          transaction_id?: string | null
           updated_at?: string
           user_id: string
           wallet_id: string
@@ -268,6 +282,7 @@ export type Database = {
           paystack_reference?: string | null
           reference_number?: string | null
           status?: string
+          transaction_id?: string | null
           updated_at?: string
           user_id?: string
           wallet_id?: string
@@ -302,6 +317,7 @@ export type Database = {
           processed_at: string | null
           reference_number: string | null
           status: string
+          transaction_id: string | null
           updated_at: string
           user_id: string
           wallet_id: string
@@ -318,6 +334,7 @@ export type Database = {
           processed_at?: string | null
           reference_number?: string | null
           status?: string
+          transaction_id?: string | null
           updated_at?: string
           user_id: string
           wallet_id: string
@@ -334,6 +351,7 @@ export type Database = {
           processed_at?: string | null
           reference_number?: string | null
           status?: string
+          transaction_id?: string | null
           updated_at?: string
           user_id?: string
           wallet_id?: string

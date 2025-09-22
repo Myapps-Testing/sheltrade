@@ -120,6 +120,56 @@ Deno.serve(async (req) => {
 
     console.log('Transaction status updated successfully:', updatedTransaction)
 
+    // Update corresponding activity record status
+    if (transaction.wallet_deposit_id) {
+      const { error: depositUpdateError } = await supabaseClient
+        .from('wallet_deposit')
+        .update({ 
+          status: new_status,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', transaction.wallet_deposit_id)
+
+      if (depositUpdateError) {
+        console.error('Error updating deposit status:', depositUpdateError)
+      } else {
+        console.log('Deposit status updated to:', new_status)
+      }
+    }
+
+    if (transaction.wallet_withdrawal_id) {
+      const { error: withdrawalUpdateError } = await supabaseClient
+        .from('wallet_withdrawal')
+        .update({ 
+          status: new_status,
+          updated_at: new Date().toISOString(),
+          processed_at: new_status === 'completed' ? new Date().toISOString() : null
+        })
+        .eq('id', transaction.wallet_withdrawal_id)
+
+      if (withdrawalUpdateError) {
+        console.error('Error updating withdrawal status:', withdrawalUpdateError)
+      } else {
+        console.log('Withdrawal status updated to:', new_status)
+      }
+    }
+
+    if (transaction.user_giftcard_id) {
+      const { error: giftcardUpdateError } = await supabaseClient
+        .from('user_giftcards')
+        .update({ 
+          status: new_status === 'completed' ? 'active' : 'pending',
+          used_at: new_status === 'completed' ? null : undefined
+        })
+        .eq('id', transaction.user_giftcard_id)
+
+      if (giftcardUpdateError) {
+        console.error('Error updating gift card status:', giftcardUpdateError)
+      } else {
+        console.log('Gift card status updated to:', new_status === 'completed' ? 'active' : 'pending')
+      }
+    }
+
     return new Response(
       JSON.stringify({
         success: true,

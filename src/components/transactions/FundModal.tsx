@@ -183,6 +183,28 @@ export function FundModal({ open, onOpenChange, type }: FundModalProps) {
           return;
         }
 
+        // Create transaction record for withdrawal
+        const { error: transactionError } = await supabase
+          .from('transactions')
+          .insert({
+            user_id: user.id,
+            wallet_id: wallet.id,
+            type: 'withdrawal',
+            amount: numAmount,
+            currency: wallet.currency,
+            description: `Withdrawal to ${accountDetails.bank_name}`,
+            status: 'pending',
+            metadata: {
+              bank_name: accountDetails.bank_name,
+              account_name: accountDetails.account_name,
+              account_number: accountDetails.account_number,
+              account_type: accountDetails.account_type,
+              reference_number: `WD${Date.now()}`
+            }
+          });
+
+        if (transactionError) throw transactionError;
+
         // Save withdrawal record
         const { error: withdrawalError } = await supabase
           .from('wallet_withdrawal')
@@ -225,6 +247,27 @@ export function FundModal({ open, onOpenChange, type }: FundModalProps) {
           });
           return;
         }
+
+        // Create transaction record for deposit
+        const { error: transactionError } = await supabase
+          .from('transactions')
+          .insert({
+            user_id: user.id,
+            wallet_id: wallet.id,
+            type: 'deposit',
+            amount: numAmount,
+            currency: wallet.currency,
+            description: `Deposit via ${paymentMethod}`,
+            status: 'pending',
+            metadata: {
+              deposit_method: paymentMethod,
+              bank_detail_id: selectedBankDetail || null,
+              narration: narration,
+              reference_number: `DP${Date.now()}`
+            }
+          });
+
+        if (transactionError) throw transactionError;
 
         // Save deposit record
         const { error: depositError } = await supabase

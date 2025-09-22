@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { CreditCard, DollarSign, Building2, Smartphone, Plus } from 'lucide-react';
+import { CreditCard, DollarSign, Building2, Smartphone, Plus, Copy, Check } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -47,6 +47,7 @@ export function FundModal({ open, onOpenChange, type }: FundModalProps) {
   const [paymentMethod, setPaymentMethod] = useState('');
   const [narration, setNarration] = useState('');
   const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
   
   // Bank details for deposits
   const [bankDetails, setBankDetails] = useState<BankDetail[]>([]);
@@ -67,11 +68,17 @@ export function FundModal({ open, onOpenChange, type }: FundModalProps) {
     if (open) {
       if (type === 'add') {
         loadBankDetails();
+        generateRandomNarration();
       } else {
         loadWithdrawalAccounts();
       }
     }
   }, [open, type]);
+
+  const generateRandomNarration = () => {
+    const digits = Math.random().toString().slice(2, 14).padEnd(12, '0');
+    setNarration(digits);
+  };
 
   const loadBankDetails = async () => {
     const { data, error } = await supabase
@@ -113,14 +120,22 @@ export function FundModal({ open, onOpenChange, type }: FundModalProps) {
     }
   };
 
-  const generateNarration = (amount: number, bankDetail?: BankDetail) => {
-    const timestamp = new Date().toISOString().slice(0, 19).replace(/[-:]/g, '');
-    const reference = `SHT${timestamp}${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
-    
-    if (bankDetail) {
-      return `Deposit of $${amount} to ${bankDetail.bank_name} (${bankDetail.account_number}) - Ref: ${reference}`;
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      toast({
+        title: "Copied!",
+        description: "Narration key copied to clipboard",
+      });
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      toast({
+        title: "Copy failed",
+        description: "Please copy the narration manually",
+        variant: "destructive",
+      });
     }
-    return `Deposit of $${amount} via Paystack - Ref: ${reference}`;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -202,13 +217,10 @@ export function FundModal({ open, onOpenChange, type }: FundModalProps) {
           return;
         }
 
-        const selectedBank = bankDetails.find(bank => bank.id === selectedBankDetail);
-        const finalNarration = narration || generateNarration(numAmount, selectedBank);
-        
         if (!narration && (paymentMethod === 'bank_transfer' || paymentMethod === 'bank_deposit')) {
           toast({
             title: "Narration Required",
-            description: "Please enter a narration for your deposit to avoid losing your funds.",
+            description: "Please use the generated narration key for your deposit.",
             variant: "destructive",
           });
           return;
@@ -224,7 +236,7 @@ export function FundModal({ open, onOpenChange, type }: FundModalProps) {
             currency: wallet.currency,
             deposit_method: paymentMethod,
             bank_detail_id: selectedBankDetail || null,
-            narration: finalNarration,
+            narration: narration,
             reference_number: `DP${Date.now()}`,
             status: 'pending'
           });
@@ -240,7 +252,7 @@ export function FundModal({ open, onOpenChange, type }: FundModalProps) {
         } else {
           toast({
             title: "Deposit Instructions",
-            description: `Please use this narration when making your deposit: ${finalNarration}`,
+            description: `Please use this narration when making your deposit: ${narration}`,
           });
         }
       }
@@ -353,16 +365,30 @@ export function FundModal({ open, onOpenChange, type }: FundModalProps) {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="narration">Narration (Required)</Label>
-                    <Input
-                      id="narration"
-                      value={narration}
-                      onChange={(e) => setNarration(e.target.value)}
-                      placeholder="Enter your deposit narration"
-                      required
-                    />
+                    <Label htmlFor="narration">Narration Key (Required)</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="narration"
+                        value={narration}
+                        readOnly
+                        className="font-mono cursor-pointer select-all"
+                        onClick={() => copyToClipboard(narration)}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => copyToClipboard(narration)}
+                        className="flex-shrink-0"
+                      >
+                        {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Click the key or copy button to copy this 12-digit narration key
+                    </p>
                     <p className="text-xs text-destructive">
-                      ⚠️ Warning: If you don't add the correct narration to your deposit, your funds may be lost!
+                      ⚠️ Warning: Use this exact narration key when making your deposit!
                     </p>
                   </div>
                 </>
@@ -380,12 +406,20 @@ export function FundModal({ open, onOpenChange, type }: FundModalProps) {
                       )}
                       {paymentMethod === 'bank_transfer' && selectedBankDetail && (
                         <div className="text-sm text-muted-foreground space-y-2">
-                          <p>Transfer to the selected bank account and use the generated narration.</p>
-                          {amount && (
-                            <div className="bg-muted/50 p-3 rounded-lg">
-                              <p className="font-mono text-xs break-all">
-                                Narration: {generateNarration(parseFloat(amount), bankDetails.find(b => b.id === selectedBankDetail))}
+                          <p>Transfer to the selected bank account and use the narration key above.</p>
+                          {narration && (
+                            <div className="bg-muted/50 p-3 rounded-lg flex items-center justify-between">
+                              <p className="font-mono text-xs">
+                                Narration Key: {narration}
                               </p>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => copyToClipboard(narration)}
+                              >
+                                {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                              </Button>
                             </div>
                           )}
                         </div>

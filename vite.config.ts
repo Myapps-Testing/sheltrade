@@ -12,7 +12,9 @@ export default defineConfig(({ mode }) => ({
   preview: {
     port: 4173,
     host: true,
-    allowedHosts: ["sheltrade-4c4a.onrender.com"],
+    allowedHosts: ['sheltrade-ig8i.onrender.com'],
+}
+
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {

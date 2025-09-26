@@ -1,6 +1,6 @@
 {
-  "name": "My App",
-  "short_name": "App",
+  "name": "Sheltrade",
+  "short_name": "sheltrade",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

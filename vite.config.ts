@@ -5,10 +5,6 @@ import { componentTagger } from "lovable-tagger";
 
 export default defineConfig(({ mode }) => ({
   server: {
-    host: "::", // IPv6-compatible, you could also use '0.0.0.0'
-    port: 8080,
-  },
-  preview: {
     host: true,
     port: 4173,
     allowedHosts: ['sheltrade-ig8i.onrender.com', 'https://sheltrade-ig8i.onrender.com']

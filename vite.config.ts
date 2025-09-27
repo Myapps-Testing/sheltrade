@@ -8,8 +8,8 @@ export default defineConfig({
     outDir: "dist", // Render expects this folder
   },
   server: {
-    port: 3000, // Render will map this automatically
+    port: 3000,
     strictPort: true,
-    allwedHosts: ['https://sheltrade-d2pl.onrender.com', 'sheltrade-d2pl.onrender.com']
+    allowedHosts: ['sheltrade-d2pl.onrender.com']
   },
 });

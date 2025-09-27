@@ -1,15 +1,23 @@
 import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
+import react from "@vitejs/plugin-react-swc";
+import path from "path";
+import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
-export default defineConfig({
-  plugins: [react()],
-  build: {
-    outDir: "dist", // Render expects this folder
-  },
+export default defineConfig(({ mode }) => ({
   server: {
-    port: 3000,
-    strictPort: true,
-    allowedHosts: ['sheltrade-d2pl.onrender.com']
+    host: "::",
+    port: 8080,
   },
-});
+  preview: {
+    port: 4173,
+    host: true,
+    allowedHosts: ["sheltrade-d2pl.onrender.com"],
+  },
+  plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
+}));

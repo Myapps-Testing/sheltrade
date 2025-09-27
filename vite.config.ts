@@ -10,5 +10,6 @@ export default defineConfig({
   server: {
     port: 3000, // Render will map this automatically
     strictPort: true,
+    ['https://sheltrade-d2pl.onrender.com', 'sheltrade-d2pl.onrender.com']
   },
 });

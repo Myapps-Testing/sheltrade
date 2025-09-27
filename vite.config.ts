@@ -8,6 +8,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    allowedHosts: ["sheltrade-d2pl.onrender.com"],
   },
   preview: {
     port: 4173,

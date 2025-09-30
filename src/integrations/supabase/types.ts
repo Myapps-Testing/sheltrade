@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      bank_details_access_log: {
+        Row: {
+          accessed_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          accessed_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          accessed_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       giftcards: {
         Row: {
           brand: string
@@ -398,7 +416,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_bank_details_for_deposit: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          account_name: string
+          account_number: string
+          account_type: string
+          bank_name: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

@@ -81,16 +81,26 @@ export function FundModal({ open, onOpenChange, type }: FundModalProps) {
   };
 
   const loadBankDetails = async () => {
-    const { data, error } = await supabase
-      .from('sheltradeadmin_bankdetail')
-      .select('*')
-      .eq('is_active', true)
-      .order('bank_name');
+    const { data, error } = await supabase.rpc('get_bank_details_for_deposit');
     
     if (error) {
       console.error('Error loading bank details:', error);
-    } else {
-      setBankDetails(data || []);
+      toast({
+        title: "Error",
+        description: "Unable to load bank details. Please try again.",
+        variant: "destructive",
+      });
+    } else if (data && data.length > 0) {
+      // Convert the RPC result to match BankDetail interface
+      // The RPC returns an array of records
+      const formattedData = data.map((detail: any) => ({
+        id: detail.bank_name + detail.account_number, // Create a unique ID
+        bank_name: detail.bank_name,
+        account_name: detail.account_name,
+        account_number: detail.account_number,
+        account_type: detail.account_type || 'savings'
+      }));
+      setBankDetails(formattedData);
     }
   };
 

@@ -161,23 +161,25 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Load bank details for transfer
+// Load bank details for transfer using secure function
 async function loadBankDetails() {
     try {
-        const { data, error } = await supabase
-            .from('sheltradeadmin_bankdetail')
-            .select('*')
-            .eq('is_active', true)
-            .single();
+        const { data, error } = await supabase.rpc('get_bank_details_for_deposit');
 
         if (error) throw error;
 
+        if (!data || data.length === 0) {
+            document.getElementById('bank-details').innerHTML = '<p>Bank details not available at the moment. Please try again later.</p>';
+            return;
+        }
+
+        const bankDetails = data[0];
         document.getElementById('bank-details').innerHTML = `
             <h3 style="margin-bottom: 1rem; font-weight: 600;">Bank Transfer Details</h3>
-            <p><strong>Bank Name:</strong> ${data.bank_name}</p>
-            <p><strong>Account Name:</strong> ${data.account_name}</p>
-            <p><strong>Account Number:</strong> ${data.account_number}</p>
-            <p><strong>Account Type:</strong> ${data.account_type}</p>
+            <p><strong>Bank Name:</strong> ${bankDetails.bank_name}</p>
+            <p><strong>Account Name:</strong> ${bankDetails.account_name}</p>
+            <p><strong>Account Number:</strong> ${bankDetails.account_number}</p>
+            <p><strong>Account Type:</strong> ${bankDetails.account_type}</p>
             <p style="margin-top: 1rem; font-size: 0.875rem; color: hsl(var(--muted-foreground));">
                 Please transfer the amount to the above account and submit this form. Your wallet will be credited once we confirm the payment.
             </p>

@@ -5,88 +5,265 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Sheltrade</title>
     <link rel="stylesheet" href="css/main.css">
-    <link href="https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 </head>
 <body>
-    <!-- Navbar -->
     <nav class="navbar">
-        <div class="container">
-            <div class="nav-content">
-                <a href="dashboard.html" class="nav-brand">Sheltrade</a>
-                <div class="nav-links">
-                    <span id="user-email" class="nav-text"></span>
-                    <button id="logout-btn" class="btn btn-outline btn-sm">Logout</button>
+        <div class="container nav-container">
+            <div class="nav-brand">
+                <h1>Sheltrade</h1>
+            </div>
+            <div class="nav-menu">
+                <a href="dashboard.html" class="nav-link active">Dashboard</a>
+                <a href="about.html" class="nav-link">About</a>
+                <a href="contact.html" class="nav-link">Contact</a>
+                <div class="user-menu">
+                    <span id="user-email" class="user-email"></span>
+                    <button id="logout-btn" class="btn btn-secondary">Logout</button>
                 </div>
             </div>
         </div>
     </nav>
 
-    <div class="dashboard-container">
+    <main class="dashboard-container">
         <div class="container">
-            <h1 class="dashboard-title">Dashboard</h1>
+            <!-- View Toggle -->
+            <div class="view-toggle" style="margin-bottom: 2rem;">
+                <button id="dashboard-view-btn" class="btn btn-primary">Dashboard</button>
+                <button id="giftcards-view-btn" class="btn btn-secondary">Gift Cards</button>
+            </div>
 
-            <!-- Wallet Balance -->
-            <div class="wallet-section">
-                <div class="wallet-card">
-                    <h2 class="wallet-title">Wallet Balance</h2>
-                    <div class="wallet-amount" id="wallet-balance">$0.00</div>
-                    <p class="wallet-currency">USD</p>
+            <!-- Dashboard View -->
+            <div id="dashboard-view" class="view-active">
+                <!-- Stats Overview -->
+                <div class="stats-grid">
+                    <div class="stat-card gradient-card">
+                        <div class="stat-icon">💰</div>
+                        <div class="stat-content">
+                            <h3>Total Balance</h3>
+                            <p class="stat-value" id="wallet-balance">$0.00</p>
+                            <span class="stat-change positive">+12.5% from last month</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">📊</div>
+                        <div class="stat-content">
+                            <h3>Total Transactions</h3>
+                            <p class="stat-value" id="total-transactions">0</p>
+                            <span class="stat-change positive">+8.2% from last month</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🎁</div>
+                        <div class="stat-content">
+                            <h3>Gift Cards Sold</h3>
+                            <p class="stat-value" id="gift-cards-sold">0</p>
+                            <span class="stat-change positive">+15.3% from last month</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">👥</div>
+                        <div class="stat-content">
+                            <h3>Active Sessions</h3>
+                            <p class="stat-value" id="active-sessions">0</p>
+                            <span class="stat-change negative">-2.1% from last month</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Content -->
+                <div class="dashboard-grid">
+                    <div class="main-content">
+                        <!-- Wallet Balance Card -->
+                        <div class="card wallet-card">
+                            <h2>Wallet Balance</h2>
+                            <div class="wallet-info">
+                                <div class="balance-display">
+                                    <span class="balance-label">Available Balance</span>
+                                    <span class="balance-amount" id="main-wallet-balance">$0.00</span>
+                                </div>
+                                <div class="wallet-actions">
+                                    <button id="fund-wallet-btn" class="btn btn-success">Add Funds</button>
+                                    <button id="withdraw-btn" class="btn btn-warning">Withdraw</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Transactions -->
+                        <div class="card">
+                            <h2>Recent Transactions</h2>
+                            <div id="transactions-list" class="transactions-list">
+                                <p class="loading">Loading transactions...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="sidebar-content">
+                        <!-- Quick Actions -->
+                        <div class="card">
+                            <h3>Quick Actions</h3>
+                            <div class="quick-actions">
+                                <button class="action-btn success" id="quick-add-funds">
+                                    <span class="action-icon">➕</span>
+                                    <span>Add Funds</span>
+                                </button>
+                                <button class="action-btn warning" id="quick-withdraw">
+                                    <span class="action-icon">⬇️</span>
+                                    <span>Withdraw</span>
+                                </button>
+                                <button class="action-btn purple" id="quick-giftcards">
+                                    <span class="action-icon">🎁</span>
+                                    <span>Gift Cards</span>
+                                </button>
+                                <button class="action-btn orange" id="quick-crypto">
+                                    <span class="action-icon">📈</span>
+                                    <span>Crypto</span>
+                                </button>
+                                <button class="action-btn blue" id="quick-bills">
+                                    <span class="action-icon">💳</span>
+                                    <span>Pay Bills</span>
+                                </button>
+                                <button class="action-btn green" id="quick-mobile">
+                                    <span class="action-icon">📱</span>
+                                    <span>Mobile Top-up</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Notifications -->
+                        <div class="card">
+                            <h3>Recent Notifications</h3>
+                            <div class="notifications-list">
+                                <div class="notification-item">
+                                    <div class="notification-content">
+                                        <p class="notification-title">Transaction Completed</p>
+                                        <p class="notification-message">Your Amazon gift card purchase has been processed successfully.</p>
+                                    </div>
+                                    <span class="notification-time">2 minutes ago</span>
+                                </div>
+                                <div class="notification-item">
+                                    <div class="notification-content">
+                                        <p class="notification-title">Wallet Credited</p>
+                                        <p class="notification-message">Your account has been credited with $250.00</p>
+                                    </div>
+                                    <span class="notification-time">1 hour ago</span>
+                                </div>
+                            </div>
+                            <button class="btn btn-ghost" style="width: 100%; margin-top: 1rem;">View All Notifications</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Featured Gift Cards -->
+                <div class="featured-section">
+                    <div class="section-header">
+                        <h2>Featured Gift Cards</h2>
+                        <button id="view-all-giftcards" class="btn btn-secondary">View All</button>
+                    </div>
+                    <div id="featured-giftcards" class="giftcards-grid">
+                        <p class="loading">Loading gift cards...</p>
+                    </div>
                 </div>
             </div>
 
-            <!-- Quick Actions -->
-            <div class="quick-actions">
-                <h2 class="section-title">Quick Actions</h2>
-                <div class="actions-grid">
-                    <button class="action-card" id="fund-wallet-btn">
-                        <div class="action-icon">💳</div>
-                        <span class="action-label">Fund Wallet</span>
-                    </button>
-                    <button class="action-card" id="withdraw-btn">
-                        <div class="action-icon">💰</div>
-                        <span class="action-label">Withdraw</span>
-                    </button>
-                    <button class="action-card" id="buy-giftcard-btn">
-                        <div class="action-icon">🎁</div>
-                        <span class="action-label">Buy Gift Card</span>
-                    </button>
+            <!-- Gift Cards View -->
+            <div id="giftcards-view" class="view-hidden">
+                <div class="section-header">
+                    <h1>Gift Card Marketplace</h1>
+                    <button id="back-to-dashboard" class="btn btn-secondary">Back to Dashboard</button>
                 </div>
-            </div>
 
-            <!-- Recent Transactions -->
-            <div class="transactions-section">
-                <h2 class="section-title">Recent Transactions</h2>
-                <div class="transactions-list" id="transactions-list">
-                    <p class="loading">Loading transactions...</p>
+                <div class="marketplace-stats card" style="margin: 2rem 0;">
+                    <div class="stat-icon">🎁</div>
+                    <h3>Marketplace Stats</h3>
+                    <div class="stats-details">
+                        <div class="stat-row">
+                            <span>Available Cards:</span>
+                            <span class="stat-value">1,200+</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>Categories:</span>
+                            <span class="stat-value">25</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>Avg. Discount:</span>
+                            <span class="stat-value success">7.5%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="all-giftcards" class="giftcards-grid">
+                    <p class="loading">Loading gift cards...</p>
                 </div>
             </div>
         </div>
-    </div>
+    </main>
 
     <!-- Fund Wallet Modal -->
     <div id="fund-modal" class="modal">
         <div class="modal-content">
             <span class="modal-close">&times;</span>
-            <h2 class="modal-title">Fund Wallet</h2>
+            <h2>Add Funds to Your Wallet</h2>
+            
             <form id="fund-form">
                 <div class="form-group">
-                    <label class="form-label">Amount (USD)</label>
-                    <input type="number" id="fund-amount" class="form-input" min="1" required>
+                    <label for="fund-amount">Amount (USD)</label>
+                    <input type="number" id="fund-amount" name="amount" step="0.01" min="1" required>
                 </div>
+
                 <div class="form-group">
-                    <label class="form-label">Deposit Method</label>
-                    <select id="deposit-method" class="form-input" required>
+                    <label for="deposit-method">Deposit Method</label>
+                    <select id="deposit-method" name="method" required>
+                        <option value="">Select deposit method</option>
                         <option value="bank_transfer">Bank Transfer</option>
-                        <option value="card">Card Payment</option>
+                        <option value="bank_deposit">Bank Deposit (Paystack)</option>
+                        <option value="card">Credit/Debit Card</option>
+                        <option value="mobile">Mobile Money</option>
                     </select>
                 </div>
-                <div id="bank-details" class="bank-details"></div>
-                <button type="submit" class="btn btn-primary btn-full">Submit Deposit</button>
+
+                <div id="narration-section" class="form-group" style="display: none;">
+                    <label for="narration-key">Narration Key (Required)</label>
+                    <div class="input-with-button">
+                        <input type="text" id="narration-key" readonly class="narration-input">
+                        <button type="button" id="copy-narration" class="btn btn-secondary">Copy</button>
+                    </div>
+                    <p class="help-text warning">⚠️ Warning: Use this exact narration key when making your deposit!</p>
+                </div>
+
+                <div id="bank-details" class="bank-details-section"></div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Submit Deposit Request</button>
             </form>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Gift Card Purchase Modal -->
+    <div id="giftcard-modal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close-giftcard">&times;</span>
+            <h2 id="giftcard-modal-title">Purchase Gift Card</h2>
+            
+            <div id="giftcard-details" class="giftcard-details">
+                <!-- Details will be populated dynamically -->
+            </div>
+
+            <form id="giftcard-purchase-form">
+                <div class="form-group">
+                    <label for="giftcard-quantity">Quantity</label>
+                    <input type="number" id="giftcard-quantity" min="1" value="1" required>
+                </div>
+
+                <div class="total-display">
+                    <span>Total:</span>
+                    <span id="giftcard-total">$0.00</span>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Purchase Now</button>
+            </form>
+        </div>
+    </div>
+
     <script src="js/dashboard.js"></script>
 </body>
 </html>

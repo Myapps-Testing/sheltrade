@@ -1,0 +1,2 @@
+- [x] Update vite.config.ts to use @vitejs/plugin-react instead of @vitejs/plugin-react-swc
+- [x] Run dev server to verify the fix

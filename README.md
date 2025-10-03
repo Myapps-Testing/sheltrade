@@ -62,7 +62,32 @@ This project is built with:
 
 ## How can I deploy this project?
 
+### Option 1: Lovable Deployment
 Simply open [Lovable](https://lovable.dev/projects/0c7bb4f2-f8b8-4b28-abee-ac9ffc967af8) and click on Share -> Publish.
+
+### Option 2: Render Deployment (Static Site)
+
+1. **Build the project for production:**
+   ```sh
+   npm run build
+   ```
+
+2. **Create a Render account** at [render.com](https://render.com) if you don't have one.
+
+3. **Connect your GitHub repository** to Render.
+
+4. **Create a new Static Site:**
+   - Click "New" > "Static Site"
+   - Connect your repository
+   - Set the build command: `npm run build`
+   - Set the publish directory: `dist`
+   - Add environment variables:
+     - `VITE_SUPABASE_URL`: Your Supabase project URL
+     - `VITE_SUPABASE_PUBLISHABLE_KEY`: Your Supabase anon key
+
+5. **Deploy** the site.
+
+The site will be available at the URL provided by Render.
 
 ## Can I connect a custom domain to my Lovable project?
 

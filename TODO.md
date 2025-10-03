@@ -1,2 +1,3 @@
-- [x] Update vite.config.ts to use @vitejs/plugin-react instead of @vitejs/plugin-react-swc
-- [x] Run dev server to verify the fix
+- [x] Configure environment variables for Supabase
+- [x] Run production build
+- [x] Update README with deployment instructions

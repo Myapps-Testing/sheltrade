@@ -34,5 +34,113 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- PWA Install Prompt -->
+    <div id="pwa-install-prompt" style="display:none;position:fixed;bottom:20px;left:20px;right:20px;max-width:400px;margin:0 auto;background:white;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.15);padding:20px;z-index:9999;animation:slideUp 0.3s ease;">
+      <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <strong style="color:#1e293b;font-size:16px;">Install Sheltrade App</strong>
+        </div>
+        <button id="pwa-dismiss" style="background:none;border:none;cursor:pointer;padding:0;color:#64748b;" onclick="dismissPWAPrompt()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <p style="color:#64748b;font-size:14px;margin:0 0 16px 0;">Install our app for quick access, offline support, and a better experience!</p>
+      <div style="display:flex;gap:8px;">
+        <button id="pwa-install" style="flex:1;background:#3b82f6;color:white;border:none;padding:10px 16px;border-radius:6px;font-size:14px;font-weight:500;cursor:pointer;" onclick="installPWA()">Install Now</button>
+        <button onclick="dismissPWAPrompt()" style="flex:1;background:white;color:#64748b;border:1px solid #e2e8f0;padding:10px 16px;border-radius:6px;font-size:14px;font-weight:500;cursor:pointer;">Not Now</button>
+      </div>
+    </div>
+
+    <style>
+      @keyframes slideUp {
+        from {
+          transform: translateY(100px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+      
+      @media (prefers-color-scheme: dark) {
+        #pwa-install-prompt {
+          background: #1e293b !important;
+          color: #f1f5f9 !important;
+        }
+        #pwa-install-prompt strong {
+          color: #f1f5f9 !important;
+        }
+        #pwa-install-prompt p {
+          color: #94a3b8 !important;
+        }
+        #pwa-install-prompt button:last-child {
+          background: #334155 !important;
+          color: #f1f5f9 !important;
+          border-color: #475569 !important;
+        }
+      }
+    </style>
+
+    <script>
+      // PWA Service Worker Registration
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('Service Worker registered'))
+            .catch(err => console.log('Service Worker registration failed:', err));
+        });
+      }
+
+      // PWA Install Prompt
+      let deferredPrompt;
+      
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        
+        // Check if user has dismissed before
+        const dismissed = localStorage.getItem('pwa-install-dismissed');
+        if (!dismissed) {
+          document.getElementById('pwa-install-prompt').style.display = 'block';
+        }
+      });
+
+      function installPWA() {
+        const promptDiv = document.getElementById('pwa-install-prompt');
+        promptDiv.style.display = 'none';
+        
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          deferredPrompt.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === 'accepted') {
+              console.log('User accepted the install prompt');
+            }
+            deferredPrompt = null;
+          });
+        }
+      }
+
+      function dismissPWAPrompt() {
+        document.getElementById('pwa-install-prompt').style.display = 'none';
+        localStorage.setItem('pwa-install-dismissed', 'true');
+      }
+
+      // Listen for app installed
+      window.addEventListener('appinstalled', () => {
+        console.log('PWA was installed');
+        document.getElementById('pwa-install-prompt').style.display = 'none';
+      });
+    </script>
   </body>
+
 </html>

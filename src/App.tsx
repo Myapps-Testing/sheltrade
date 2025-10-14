@@ -2,7 +2,6 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { FloatingChat } from '@/components/chat/FloatingChat';
-import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 import Index from '@/pages/Index';
 import Dashboard from '@/pages/Dashboard';
 import Auth from '@/pages/Auth';
@@ -42,7 +41,6 @@ function App() {
         </Routes>
         <Toaster />
         <FloatingChat />
-        <PWAInstallPrompt />
       </div>
     </Router>
   );

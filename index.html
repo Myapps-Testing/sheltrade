@@ -92,30 +92,54 @@
     </style>
 
     <script>
-      // PWA Service Worker Registration
+      // Enhanced PWA Service Worker - Works in development (localhost/HTTP) and production (HTTPS)
       if ('serviceWorker' in navigator) {
+        const isDev = window.location.hostname === 'localhost' || 
+                      window.location.hostname === '127.0.0.1';
+        
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('/sw.js')
-            .then(reg => console.log('Service Worker registered'))
-            .catch(err => console.log('Service Worker registration failed:', err));
+            .then(reg => {
+              console.log('✅ Service Worker registered successfully');
+              console.log('Environment:', isDev ? 'Development' : 'Production');
+            })
+            .catch(err => {
+              console.error('❌ Service Worker registration failed:', err);
+              if (!isDev && window.location.protocol !== 'https:') {
+                console.warn('⚠️ Service Workers require HTTPS in production environments');
+              }
+            });
         });
+      } else {
+        console.warn('Service Workers not supported in this browser');
       }
 
-      // PWA Install Prompt - Show immediately for testing
+      // PWA Install Prompt - Enhanced for development environments
       let deferredPrompt;
+      const isDevelopment = window.location.hostname === 'localhost' || 
+                           window.location.hostname === '127.0.0.1' ||
+                           window.location.port === '8080' ||
+                           window.location.hostname.includes('lovableproject.com');
       
-      // Show prompt after page loads (for testing in development)
+      if (isDevelopment) {
+        console.log('🔧 Development mode: PWA testing features enabled');
+        console.log('To reset install prompt: localStorage.removeItem("pwa-install-dismissed")');
+      }
+      
+      // Show prompt after page loads (works in all environments for testing)
       window.addEventListener('load', () => {
         setTimeout(() => {
           const dismissed = localStorage.getItem('pwa-install-dismissed');
           if (!dismissed) {
             document.getElementById('pwa-install-prompt').style.display = 'block';
+            console.log('📱 Install prompt displayed');
           }
-        }, 2000); // Show after 2 seconds
+        }, 2000);
       });
       
-      // Also listen for the real PWA install event (for production)
+      // Listen for native browser install event (production)
       window.addEventListener('beforeinstallprompt', (e) => {
+        console.log('🎯 beforeinstallprompt event fired');
         e.preventDefault();
         deferredPrompt = e;
         
@@ -130,27 +154,35 @@
         promptDiv.style.display = 'none';
         
         if (deferredPrompt) {
+          // Native browser install available
           deferredPrompt.prompt();
           deferredPrompt.userChoice.then((choiceResult) => {
+            console.log('User choice:', choiceResult.outcome);
             if (choiceResult.outcome === 'accepted') {
-              console.log('User accepted the install prompt');
+              console.log('✅ User installed the PWA');
             }
             deferredPrompt = null;
           });
         } else {
-          // In development/preview, show instructions
-          alert('PWA Install:\n\nIn production, this will trigger the native install prompt.\n\nFor now, you can manually install by:\n- Chrome: Menu → Install App\n- Safari: Share → Add to Home Screen');
+          // Fallback: Manual installation instructions
+          const instructions = isDevelopment
+            ? '🔧 Development Environment:\n\nThe native install prompt requires:\n✓ Valid manifest.json\n✓ Service worker registered\n✓ HTTPS (or localhost)\n\nManual install:\n• Chrome DevTools → Application → Manifest → Install button\n• Or browser menu → Install App\n• Safari iOS: Share → Add to Home Screen'
+            : '📱 Install Instructions:\n\niPhone/iPad (Safari):\nShare button → Add to Home Screen\n\nAndroid (Chrome):\nMenu (⋮) → Install App / Add to Home Screen\n\nDesktop (Chrome/Edge):\nAddress bar → Install icon';
+          
+          alert(instructions);
+          console.log('Manual installation instructions shown');
         }
       }
 
       function dismissPWAPrompt() {
         document.getElementById('pwa-install-prompt').style.display = 'none';
         localStorage.setItem('pwa-install-dismissed', 'true');
+        console.log('Install prompt dismissed');
       }
 
-      // Listen for app installed
+      // Listen for successful installation
       window.addEventListener('appinstalled', () => {
-        console.log('PWA was installed');
+        console.log('🎉 PWA installed successfully!');
         document.getElementById('pwa-install-prompt').style.display = 'none';
       });
     </script>

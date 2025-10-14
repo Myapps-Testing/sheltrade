@@ -101,14 +101,24 @@
         });
       }
 
-      // PWA Install Prompt
+      // PWA Install Prompt - Show immediately for testing
       let deferredPrompt;
       
+      // Show prompt after page loads (for testing in development)
+      window.addEventListener('load', () => {
+        setTimeout(() => {
+          const dismissed = localStorage.getItem('pwa-install-dismissed');
+          if (!dismissed) {
+            document.getElementById('pwa-install-prompt').style.display = 'block';
+          }
+        }, 2000); // Show after 2 seconds
+      });
+      
+      // Also listen for the real PWA install event (for production)
       window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
         
-        // Check if user has dismissed before
         const dismissed = localStorage.getItem('pwa-install-dismissed');
         if (!dismissed) {
           document.getElementById('pwa-install-prompt').style.display = 'block';
@@ -127,6 +137,9 @@
             }
             deferredPrompt = null;
           });
+        } else {
+          // In development/preview, show instructions
+          alert('PWA Install:\n\nIn production, this will trigger the native install prompt.\n\nFor now, you can manually install by:\n- Chrome: Menu → Install App\n- Safari: Share → Add to Home Screen');
         }
       }
 

@@ -2,25 +2,190 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Sheltrade - Comprehensive Financial Platform</title>
     <meta name="description" content="Secure wallet management, gift card trading, and financial services platform">
     <meta name="author" content="Sheltrade" />
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#3b82f6" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Sheltrade" />
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" rel="stylesheet">
 
+    <!-- Social Meta Tags -->
     <meta property="og:title" content="Sheltrade - Comprehensive Financial Platform" />
     <meta property="og:description" content="Secure wallet management, gift card trading, and financial services platform" />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/EVs9QXxy7fgOg8wGZaUGYHx52ku2/social-images/social-1758068178155-android-chrome-192x192.png">
+    
+    <!-- PWA Icons and Manifest -->
     <link rel="manifest" href="/manifest.json">
-    <link rel="icon" type="image/x-icon" href="https://storage.googleapis.com/gpt-engineer-file-uploads/EVs9QXxy7fgOg8wGZaUGYHx52ku2/uploads/1758068188760-favicon-16x16.png">
-    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+    <link rel="icon" type="image/x-icon" href="/icons/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
 </head>
 
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- PWA Install Prompt -->
+    <div id="pwa-install-prompt" style="display:none;position:fixed;bottom:20px;left:20px;right:20px;max-width:400px;margin:0 auto;background:white;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.15);padding:20px;z-index:9999;animation:slideUp 0.3s ease;">
+      <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <strong style="color:#1e293b;font-size:16px;">Install Sheltrade App</strong>
+        </div>
+        <button id="pwa-dismiss" style="background:none;border:none;cursor:pointer;padding:0;color:#64748b;" onclick="dismissPWAPrompt()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <p style="color:#64748b;font-size:14px;margin:0 0 16px 0;">Install our app for quick access, offline support, and a better experience!</p>
+      <div style="display:flex;gap:8px;">
+        <button id="pwa-install" style="flex:1;background:#3b82f6;color:white;border:none;padding:10px 16px;border-radius:6px;font-size:14px;font-weight:500;cursor:pointer;" onclick="installPWA()">Install Now</button>
+        <button onclick="dismissPWAPrompt()" style="flex:1;background:white;color:#64748b;border:1px solid #e2e8f0;padding:10px 16px;border-radius:6px;font-size:14px;font-weight:500;cursor:pointer;">Not Now</button>
+      </div>
+    </div>
+
+    <style>
+      @keyframes slideUp {
+        from {
+          transform: translateY(100px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+      
+      @media (prefers-color-scheme: dark) {
+        #pwa-install-prompt {
+          background: #1e293b !important;
+          color: #f1f5f9 !important;
+        }
+        #pwa-install-prompt strong {
+          color: #f1f5f9 !important;
+        }
+        #pwa-install-prompt p {
+          color: #94a3b8 !important;
+        }
+        #pwa-install-prompt button:last-child {
+          background: #334155 !important;
+          color: #f1f5f9 !important;
+          border-color: #475569 !important;
+        }
+      }
+    </style>
+
+    <script>
+      // Enhanced PWA Service Worker - Works in development (localhost/HTTP) and production (HTTPS)
+      if ('serviceWorker' in navigator) {
+        const isDev = window.location.hostname === 'localhost' || 
+                      window.location.hostname === '127.0.0.1';
+        
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(reg => {
+              console.log('✅ Service Worker registered successfully');
+              console.log('Environment:', isDev ? 'Development' : 'Production');
+            })
+            .catch(err => {
+              console.error('❌ Service Worker registration failed:', err);
+              if (!isDev && window.location.protocol !== 'https:') {
+                console.warn('⚠️ Service Workers require HTTPS in production environments');
+              }
+            });
+        });
+      } else {
+        console.warn('Service Workers not supported in this browser');
+      }
+
+      // PWA Install Prompt - Enhanced for development environments
+      let deferredPrompt;
+      const isDevelopment = window.location.hostname === 'localhost' || 
+                           window.location.hostname === '127.0.0.1' ||
+                           window.location.port === '8080' ||
+                           window.location.hostname.includes('lovableproject.com');
+      
+      if (isDevelopment) {
+        console.log('🔧 Development mode: PWA testing features enabled');
+        console.log('To reset install prompt: localStorage.removeItem("pwa-install-dismissed")');
+      }
+      
+      // Show prompt after page loads (works in all environments for testing)
+      window.addEventListener('load', () => {
+        setTimeout(() => {
+          const dismissed = localStorage.getItem('pwa-install-dismissed');
+          if (!dismissed) {
+            document.getElementById('pwa-install-prompt').style.display = 'block';
+            console.log('📱 Install prompt displayed');
+          }
+        }, 2000);
+      });
+      
+      // Listen for native browser install event (production)
+      window.addEventListener('beforeinstallprompt', (e) => {
+        console.log('🎯 beforeinstallprompt event fired');
+        e.preventDefault();
+        deferredPrompt = e;
+        
+        const dismissed = localStorage.getItem('pwa-install-dismissed');
+        if (!dismissed) {
+          document.getElementById('pwa-install-prompt').style.display = 'block';
+        }
+      });
+
+      function installPWA() {
+        const promptDiv = document.getElementById('pwa-install-prompt');
+        promptDiv.style.display = 'none';
+        
+        if (deferredPrompt) {
+          // Native browser install available
+          deferredPrompt.prompt();
+          deferredPrompt.userChoice.then((choiceResult) => {
+            console.log('User choice:', choiceResult.outcome);
+            if (choiceResult.outcome === 'accepted') {
+              console.log('✅ User installed the PWA');
+            }
+            deferredPrompt = null;
+          });
+        } else {
+          // Fallback: Manual installation instructions
+          const instructions = isDevelopment
+            ? '🔧 Development Environment:\n\nThe native install prompt requires:\n✓ Valid manifest.json\n✓ Service worker registered\n✓ HTTPS (or localhost)\n\nManual install:\n• Chrome DevTools → Application → Manifest → Install button\n• Or browser menu → Install App\n• Safari iOS: Share → Add to Home Screen'
+            : '📱 Install Instructions:\n\niPhone/iPad (Safari):\nShare button → Add to Home Screen\n\nAndroid (Chrome):\nMenu (⋮) → Install App / Add to Home Screen\n\nDesktop (Chrome/Edge):\nAddress bar → Install icon';
+          
+          alert(instructions);
+          console.log('Manual installation instructions shown');
+        }
+      }
+
+      function dismissPWAPrompt() {
+        document.getElementById('pwa-install-prompt').style.display = 'none';
+        localStorage.setItem('pwa-install-dismissed', 'true');
+        console.log('Install prompt dismissed');
+      }
+
+      // Listen for successful installation
+      window.addEventListener('appinstalled', () => {
+        console.log('🎉 PWA installed successfully!');
+        document.getElementById('pwa-install-prompt').style.display = 'none';
+      });
+    </script>
   </body>
+
 </html>

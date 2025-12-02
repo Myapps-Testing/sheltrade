@@ -166,7 +166,7 @@ export function TransactionManager() {
                     {transaction.status === 'pending' && (
                       <div className="flex gap-2">
                         <Select
-                          onValueChange={(status) => updateTransactionStatus(transaction.id, status)}
+                          onValueChange={(status: string) => updateTransactionStatus(transaction.id, status)}
                           disabled={updating === transaction.id}
                         >
                           <SelectTrigger className="w-32">

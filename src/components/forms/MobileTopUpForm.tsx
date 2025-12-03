@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { processMobileTopUp } from '@/apis/mobileTopUp';
+import { buyAirtime, buyData, getDataPlans, DataPlan } from '@/apis/mobileTopUp';
 import { Smartphone, Wifi, Loader2 } from 'lucide-react';
 
 const networks = [
@@ -18,13 +18,6 @@ const networks = [
 ];
 
 const airtimeAmounts = [100, 200, 500, 1000, 2000, 5000];
-const dataPlans = [
-  { id: 'data-500mb', name: '500MB', price: 200, validity: '30 days' },
-  { id: 'data-1gb', name: '1GB', price: 350, validity: '30 days' },
-  { id: 'data-2gb', name: '2GB', price: 600, validity: '30 days' },
-  { id: 'data-5gb', name: '5GB', price: 1500, validity: '30 days' },
-  { id: 'data-10gb', name: '10GB', price: 2500, validity: '30 days' },
-];
 
 interface MobileTopUpFormProps {
   onSuccess?: () => void;
@@ -38,8 +31,45 @@ export const MobileTopUpForm = ({ onSuccess }: MobileTopUpFormProps) => {
   const [customAmount, setCustomAmount] = useState('');
   const [selectedDataPlan, setSelectedDataPlan] = useState('');
   const [loading, setLoading] = useState(false);
+  const [dataPlans, setDataPlans] = useState<DataPlan[]>([]);
+  const [loadingPlans, setLoadingPlans] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+
+  // Fetch data plans when network changes
+  useEffect(() => {
+    const fetchDataPlans = async () => {
+      if (!network) {
+        setDataPlans([]);
+        return;
+      }
+
+      setLoadingPlans(true);
+      try {
+        const result = await getDataPlans(network);
+        if (result.success && result.data) {
+          setDataPlans(result.data);
+        } else {
+          console.error('Failed to fetch data plans:', result.message);
+          setDataPlans([]);
+        }
+      } catch (error) {
+        console.error('Error fetching data plans:', error);
+        setDataPlans([]);
+      } finally {
+        setLoadingPlans(false);
+      }
+    };
+
+    if (topUpType === 'data') {
+      fetchDataPlans();
+    }
+  }, [network, topUpType]);
+
+  const handleNetworkChange = (networkId: string) => {
+    setNetwork(networkId);
+    setSelectedDataPlan(''); // Reset selected plan when network changes
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,22 +84,44 @@ export const MobileTopUpForm = ({ onSuccess }: MobileTopUpFormProps) => {
       return;
     }
 
-    const finalAmount = topUpType === 'airtime' 
-      ? (customAmount ? parseInt(customAmount) : amount)
-      : dataPlans.find(p => p.id === selectedDataPlan)?.price || 0;
-
-    if (!finalAmount) {
-      toast({ title: 'Error', description: 'Please select an amount', variant: 'destructive' });
+    if (phoneNumber.length < 10 || phoneNumber.length > 11) {
+      toast({ title: 'Error', description: 'Please enter a valid phone number', variant: 'destructive' });
       return;
     }
 
     setLoading(true);
     try {
-      const result = await processMobileTopUp({
-        phoneNumber,
-        amount: finalAmount,
-        networkProvider: network,
-      });
+      let result;
+
+      if (topUpType === 'airtime') {
+        const finalAmount = customAmount ? parseInt(customAmount) : amount;
+        if (!finalAmount || finalAmount < 50) {
+          toast({ title: 'Error', description: 'Minimum airtime amount is ₦50', variant: 'destructive' });
+          setLoading(false);
+          return;
+        }
+
+        result = await buyAirtime({
+          phoneNumber,
+          amount: finalAmount,
+          networkProvider: network,
+        });
+      } else {
+        // Data purchase
+        const selectedPlan = dataPlans.find(p => p.variation_code === selectedDataPlan);
+        if (!selectedPlan) {
+          toast({ title: 'Error', description: 'Please select a data plan', variant: 'destructive' });
+          setLoading(false);
+          return;
+        }
+
+        result = await buyData({
+          phoneNumber,
+          networkProvider: network,
+          variationCode: selectedDataPlan,
+          amount: parseFloat(selectedPlan.variation_amount),
+        });
+      }
 
       if (result.success) {
         toast({ title: 'Success', description: result.message });
@@ -120,7 +172,7 @@ export const MobileTopUpForm = ({ onSuccess }: MobileTopUpFormProps) => {
                     type="button"
                     variant={network === net.id ? 'default' : 'outline'}
                     className="flex flex-col items-center py-3 h-auto"
-                    onClick={() => setNetwork(net.id)}
+                    onClick={() => handleNetworkChange(net.id)}
                   >
                     <div className={`w-6 h-6 rounded-full ${net.color} mb-1`} />
                     <span className="text-xs">{net.name}</span>
@@ -166,9 +218,10 @@ export const MobileTopUpForm = ({ onSuccess }: MobileTopUpFormProps) => {
                 <Input
                   id="customAmount"
                   type="number"
-                  placeholder="Enter amount"
+                  placeholder="Enter amount (min ₦50)"
                   value={customAmount}
                   onChange={(e) => { setCustomAmount(e.target.value); setAmount(0); }}
+                  min={50}
                 />
               </div>
             </TabsContent>
@@ -177,22 +230,33 @@ export const MobileTopUpForm = ({ onSuccess }: MobileTopUpFormProps) => {
               {/* Data Plans */}
               <div className="space-y-2">
                 <Label>Select Data Plan</Label>
-                <Select value={selectedDataPlan} onValueChange={setSelectedDataPlan}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose a data plan" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {dataPlans.map((plan) => (
-                      <SelectItem key={plan.id} value={plan.id}>
-                        {plan.name} - ₦{plan.price.toLocaleString()} ({plan.validity})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {loadingPlans ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                    <span className="text-sm text-muted-foreground">Loading plans...</span>
+                  </div>
+                ) : !network ? (
+                  <p className="text-sm text-muted-foreground py-2">Select a network first</p>
+                ) : dataPlans.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-2">No data plans available</p>
+                ) : (
+                  <Select value={selectedDataPlan} onValueChange={setSelectedDataPlan}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a data plan" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {dataPlans.map((plan) => (
+                        <SelectItem key={plan.variation_code} value={plan.variation_code}>
+                          {plan.name} - ₦{parseFloat(plan.variation_amount).toLocaleString()}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
             </TabsContent>
 
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full" disabled={loading || (topUpType === 'data' && loadingPlans)}>
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

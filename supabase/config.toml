@@ -9,3 +9,6 @@ max_rows = 1000
 
 [functions.handle-transaction-status]
 verify_jwt = false
+
+[functions.vtpass-bill-payment]
+verify_jwt = true

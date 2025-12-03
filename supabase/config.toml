@@ -11,4 +11,7 @@ max_rows = 1000
 verify_jwt = false
 
 [functions.vtpass-bill-payment]
-verify_jwt = true
+verify_jwt = false
+
+[functions.vtpass-mobile-topup]
+verify_jwt = false

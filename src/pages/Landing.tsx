@@ -107,8 +107,9 @@ export default function Landing() {
             
             <div className="hidden md:flex items-center space-x-8">
               <a href="#features" className="text-muted-foreground hover:text-primary transition-colors">Features</a>
-              <a href="#about" className="text-muted-foreground hover:text-primary transition-colors">About</a>
-              <a href="#contact" className="text-muted-foreground hover:text-primary transition-colors">Contact</a>
+              <a href="/services" className="text-muted-foreground hover:text-primary transition-colors">Services</a>
+              <a href="/about" className="text-muted-foreground hover:text-primary transition-colors">About</a>
+              <a href="/contact" className="text-muted-foreground hover:text-primary transition-colors">Contact</a>
             </div>
 
             <div className="flex items-center space-x-3">

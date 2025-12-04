@@ -10,6 +10,7 @@ import Landing from '@/pages/Landing';
 import About from '@/pages/About';
 import Contact from '@/pages/Contact';
 import License from '@/pages/License';
+import Services from '@/pages/Services';
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
       <div className="App">
         <Routes>
           <Route path="/" element={<Landing />} />
+          <Route path="/services" element={<Services />} />
           <Route path="/app" element={<Index />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />

@@ -7,8 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { processBillPayment } from '@/apis/billPayment';
-import { Zap, Tv, Loader2 } from 'lucide-react';
+import { processBillPayment, verifyMeter, verifySmartCard } from '@/apis/billPayment';
+import { Zap, Tv, Loader2, CheckCircle, AlertCircle, User } from 'lucide-react';
 
 const electricityProviders = [
   { id: 'ikeja', name: 'Ikeja Electric (IE)' },
@@ -61,6 +61,13 @@ const cablePlans: Record<string, { id: string; name: string; price: number }[]> 
   ],
 };
 
+interface CustomerDetails {
+  Customer_Name?: string;
+  Address?: string;
+  MeterNumber?: string;
+  [key: string]: any;
+}
+
 interface BillPaymentFormProps {
   onSuccess?: () => void;
 }
@@ -73,8 +80,45 @@ export const BillPaymentForm = ({ onSuccess }: BillPaymentFormProps) => {
   const [selectedPlan, setSelectedPlan] = useState('');
   const [meterType, setMeterType] = useState<'prepaid' | 'postpaid'>('prepaid');
   const [loading, setLoading] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [verified, setVerified] = useState(false);
+  const [customerDetails, setCustomerDetails] = useState<CustomerDetails | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
+
+  const handleVerify = async () => {
+    if (!provider || !accountNumber) {
+      toast({ title: 'Error', description: 'Please select provider and enter account number', variant: 'destructive' });
+      return;
+    }
+
+    setVerifying(true);
+    setVerified(false);
+    setCustomerDetails(null);
+
+    try {
+      const result = billType === 'electricity' 
+        ? await verifyMeter(accountNumber, provider, meterType)
+        : await verifySmartCard(accountNumber, provider);
+
+      if (result.success && result.data) {
+        setVerified(true);
+        setCustomerDetails(result.data);
+        toast({ title: 'Verified', description: `Customer: ${result.data.Customer_Name}` });
+      } else {
+        toast({ title: 'Verification Failed', description: result.message, variant: 'destructive' });
+      }
+    } catch (error) {
+      toast({ title: 'Error', description: 'Verification failed', variant: 'destructive' });
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const resetVerification = () => {
+    setVerified(false);
+    setCustomerDetails(null);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,6 +130,11 @@ export const BillPaymentForm = ({ onSuccess }: BillPaymentFormProps) => {
 
     if (!provider || !accountNumber) {
       toast({ title: 'Error', description: 'Please fill all required fields', variant: 'destructive' });
+      return;
+    }
+
+    if (!verified) {
+      toast({ title: 'Error', description: 'Please verify account before payment', variant: 'destructive' });
       return;
     }
 
@@ -112,15 +161,17 @@ export const BillPaymentForm = ({ onSuccess }: BillPaymentFormProps) => {
         accountNumber,
         amount: finalAmount,
         provider,
+        meterType: billType === 'electricity' ? meterType : undefined,
+        variationCode: billType === 'cable' ? selectedPlan : undefined,
       });
 
       if (result.success) {
         toast({ title: 'Success', description: result.message });
         onSuccess?.();
-        // Reset form
         setAccountNumber('');
         setAmount('');
         setSelectedPlan('');
+        resetVerification();
       } else {
         toast({ title: 'Error', description: result.message, variant: 'destructive' });
       }
@@ -141,7 +192,7 @@ export const BillPaymentForm = ({ onSuccess }: BillPaymentFormProps) => {
         <CardDescription>Pay for electricity or TV subscriptions</CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs value={billType} onValueChange={(v: string) => { setBillType(v as 'electricity' | 'cable'); setProvider(''); setSelectedPlan(''); }}>
+        <Tabs value={billType} onValueChange={(v: string) => { setBillType(v as 'electricity' | 'cable'); setProvider(''); setSelectedPlan(''); resetVerification(); }}>
           <TabsList className="grid w-full grid-cols-2 mb-4">
             <TabsTrigger value="electricity" className="flex items-center gap-2">
               <Zap className="h-4 w-4" /> Electricity
@@ -153,10 +204,9 @@ export const BillPaymentForm = ({ onSuccess }: BillPaymentFormProps) => {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <TabsContent value="electricity" className="mt-0 space-y-4">
-              {/* Electricity Provider */}
               <div className="space-y-2">
                 <Label>Select Provider</Label>
-                <Select value={provider} onValueChange={setProvider}>
+                <Select value={provider} onValueChange={(v: string) => { setProvider(v); resetVerification(); }}>
                   <SelectTrigger>
                     <SelectValue placeholder="Choose provider" />
                   </SelectTrigger>
@@ -168,40 +218,67 @@ export const BillPaymentForm = ({ onSuccess }: BillPaymentFormProps) => {
                 </Select>
               </div>
 
-              {/* Meter Type */}
               <div className="space-y-2">
                 <Label>Meter Type</Label>
                 <div className="grid grid-cols-2 gap-2">
                   <Button
                     type="button"
                     variant={meterType === 'prepaid' ? 'default' : 'outline'}
-                    onClick={() => setMeterType('prepaid')}
+                    onClick={() => { setMeterType('prepaid'); resetVerification(); }}
                   >
                     Prepaid
                   </Button>
                   <Button
                     type="button"
                     variant={meterType === 'postpaid' ? 'default' : 'outline'}
-                    onClick={() => setMeterType('postpaid')}
+                    onClick={() => { setMeterType('postpaid'); resetVerification(); }}
                   >
                     Postpaid
                   </Button>
                 </div>
               </div>
 
-              {/* Meter Number */}
               <div className="space-y-2">
                 <Label htmlFor="meterNumber">Meter Number</Label>
-                <Input
-                  id="meterNumber"
-                  type="text"
-                  placeholder="Enter meter number"
-                  value={accountNumber}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAccountNumber(e.target.value)}
-                />
+                <div className="flex gap-2">
+                  <Input
+                    id="meterNumber"
+                    type="text"
+                    placeholder="Enter meter number"
+                    value={accountNumber}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setAccountNumber(e.target.value); resetVerification(); }}
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleVerify}
+                    disabled={verifying || !provider || !accountNumber}
+                  >
+                    {verifying ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Verify'}
+                  </Button>
+                </div>
               </div>
 
-              {/* Amount */}
+              {/* Customer Details Display */}
+              {verified && customerDetails && (
+                <div className="p-3 border rounded-lg bg-muted/50 space-y-2">
+                  <div className="flex items-center gap-2 text-primary">
+                    <CheckCircle className="h-4 w-4" />
+                    <span className="font-medium text-sm">Account Verified</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <User className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                    <div className="text-sm">
+                      <p className="font-medium">{customerDetails.Customer_Name}</p>
+                      {customerDetails.Address && (
+                        <p className="text-muted-foreground text-xs">{customerDetails.Address}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="amount">Amount (₦)</Label>
                 <Input
@@ -211,12 +288,12 @@ export const BillPaymentForm = ({ onSuccess }: BillPaymentFormProps) => {
                   value={amount}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAmount(e.target.value)}
                   min={500}
+                  disabled={!verified}
                 />
               </div>
             </TabsContent>
 
             <TabsContent value="cable" className="mt-0 space-y-4">
-              {/* Cable Provider */}
               <div className="space-y-2">
                 <Label>Select Provider</Label>
                 <div className="grid grid-cols-2 gap-2">
@@ -225,7 +302,7 @@ export const BillPaymentForm = ({ onSuccess }: BillPaymentFormProps) => {
                       key={p.id}
                       type="button"
                       variant={provider === p.id ? 'default' : 'outline'}
-                      onClick={() => { setProvider(p.id); setSelectedPlan(''); }}
+                      onClick={() => { setProvider(p.id); setSelectedPlan(''); resetVerification(); }}
                     >
                       {p.name}
                     </Button>
@@ -233,23 +310,54 @@ export const BillPaymentForm = ({ onSuccess }: BillPaymentFormProps) => {
                 </div>
               </div>
 
-              {/* Smart Card / IUC Number */}
               <div className="space-y-2">
                 <Label htmlFor="smartCard">Smart Card / IUC Number</Label>
-                <Input
-                  id="smartCard"
-                  type="text"
-                  placeholder="Enter smart card number"
-                  value={accountNumber}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAccountNumber(e.target.value)}
-                />
+                <div className="flex gap-2">
+                  <Input
+                    id="smartCard"
+                    type="text"
+                    placeholder="Enter smart card number"
+                    value={accountNumber}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setAccountNumber(e.target.value); resetVerification(); }}
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleVerify}
+                    disabled={verifying || !provider || !accountNumber}
+                  >
+                    {verifying ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Verify'}
+                  </Button>
+                </div>
               </div>
 
-              {/* Cable Plan */}
+              {/* Customer Details Display */}
+              {verified && customerDetails && (
+                <div className="p-3 border rounded-lg bg-muted/50 space-y-2">
+                  <div className="flex items-center gap-2 text-primary">
+                    <CheckCircle className="h-4 w-4" />
+                    <span className="font-medium text-sm">Smart Card Verified</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <User className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                    <div className="text-sm">
+                      <p className="font-medium">{customerDetails.Customer_Name}</p>
+                      {customerDetails.Current_Bouquet && (
+                        <p className="text-muted-foreground text-xs">Current Plan: {customerDetails.Current_Bouquet}</p>
+                      )}
+                      {customerDetails.Due_Date && (
+                        <p className="text-muted-foreground text-xs">Due Date: {customerDetails.Due_Date}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {provider && cablePlans[provider] && (
                 <div className="space-y-2">
                   <Label>Select Plan</Label>
-                  <Select value={selectedPlan} onValueChange={setSelectedPlan}>
+                  <Select value={selectedPlan} onValueChange={setSelectedPlan} disabled={!verified}>
                     <SelectTrigger>
                       <SelectValue placeholder="Choose a plan" />
                     </SelectTrigger>
@@ -265,7 +373,14 @@ export const BillPaymentForm = ({ onSuccess }: BillPaymentFormProps) => {
               )}
             </TabsContent>
 
-            <Button type="submit" className="w-full" disabled={loading}>
+            {!verified && (
+              <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
+                <AlertCircle className="h-4 w-4" />
+                <span>Please verify your account before proceeding to payment</span>
+              </div>
+            )}
+
+            <Button type="submit" className="w-full" disabled={loading || !verified}>
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

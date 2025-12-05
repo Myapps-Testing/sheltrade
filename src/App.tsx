@@ -11,6 +11,8 @@ import About from '@/pages/About';
 import Contact from '@/pages/Contact';
 import License from '@/pages/License';
 import Services from '@/pages/Services';
+import ProfileSettings from '@/pages/ProfileSettings';
+import TransactionHistory from '@/pages/TransactionHistory';
 
 function App() {
   return (
@@ -37,6 +39,16 @@ function App() {
           <Route path="/dashboard/withdraw" element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <ProfileSettings />
+            </ProtectedRoute>
+          } />
+          <Route path="/transactions" element={
+            <ProtectedRoute>
+              <TransactionHistory />
             </ProtectedRoute>
           } />
           <Route path="*" element={<NotFound />} />

@@ -9,24 +9,30 @@ import { QuickActions } from "@/components/dashboard/QuickActions";
 import { GiftCardGrid } from "@/components/giftcards/GiftCardGrid";
 import { FundModal } from "@/components/transactions/FundModal";
 import { BuyGiftCardModal } from "@/components/giftcards/BuyGiftCardModal";
-import { TransactionManager } from "@/components/admin/TransactionManager";
+import { GiftCardForm } from "@/components/forms/GiftCardForm";
+import { CryptoForm } from "@/components/forms/CryptoForm";
+import { MobileTopUpForm } from "@/components/forms/MobileTopUpForm";
+import { BillPaymentForm } from "@/components/forms/BillPaymentForm";
 import { Wallet, TrendingUp, Gift, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+
+type ServiceModalType = 'giftcard' | 'crypto' | 'mobile_topup' | 'bills' | null;
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
   const [currentView, setCurrentView] = useState("dashboard");
-  const [showAdmin, setShowAdmin] = useState(false);
   const [fundModalOpen, setFundModalOpen] = useState(false);
   const [fundModalType, setFundModalType] = useState<'add' | 'withdraw'>('add');
   const [giftCardModalOpen, setGiftCardModalOpen] = useState(false);
   const [selectedGiftCard, setSelectedGiftCard] = useState<any>(null);
+  const [serviceModal, setServiceModal] = useState<ServiceModalType>(null);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [giftCards, setGiftCards] = useState<any[]>([]);
   const [stats, setStats] = useState({
@@ -129,28 +135,16 @@ export default function Dashboard() {
         navigate('/dashboard/withdraw');
         break;
       case 'buy_giftcard':
-        setCurrentView('giftcards');
+        setServiceModal('giftcard');
         break;
       case 'crypto':
-        toast({
-          title: "Coming Soon",
-          description: "Cryptocurrency trading will be available soon!",
-        });
+        setServiceModal('crypto');
         break;
       case 'bills':
-        toast({
-          title: "Coming Soon", 
-          description: "Bill payments will be available soon!",
-        });
+        setServiceModal('bills');
         break;
       case 'mobile_topup':
-        toast({
-          title: "Coming Soon",
-          description: "Mobile top-up will be available soon!",
-        });
-        break;
-      case 'admin':
-        setShowAdmin(!showAdmin);
+        setServiceModal('mobile_topup');
         break;
       default:
         console.log("Quick action:", action);
@@ -170,6 +164,26 @@ export default function Dashboard() {
         description: "Failed to sign out. Please try again.",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleServiceSuccess = () => {
+    setServiceModal(null);
+    refreshWallet();
+    loadTransactions();
+    toast({
+      title: "Success",
+      description: "Transaction submitted successfully!",
+    });
+  };
+
+  const getServiceModalTitle = () => {
+    switch (serviceModal) {
+      case 'giftcard': return 'Gift Cards';
+      case 'crypto': return 'Crypto Trading';
+      case 'mobile_topup': return 'Mobile Top-Up';
+      case 'bills': return 'Bill Payment';
+      default: return '';
     }
   };
 
@@ -283,14 +297,6 @@ export default function Dashboard() {
           onSelectCard={handleGiftCardSelect}
         />
       </div>
-
-      {/* Admin Section */}
-      {showAdmin && (
-        <div className="mt-8">
-          <h2 className="text-2xl font-bold mb-6">Transaction Management</h2>
-          <TransactionManager />
-        </div>
-      )}
     </div>
   );
 
@@ -368,6 +374,19 @@ export default function Dashboard() {
         onOpenChange={setGiftCardModalOpen} 
         giftCard={selectedGiftCard} 
       />
+
+      {/* Service Modals */}
+      <Dialog open={serviceModal !== null} onOpenChange={(open) => !open && setServiceModal(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{getServiceModalTitle()}</DialogTitle>
+          </DialogHeader>
+          {serviceModal === 'giftcard' && <GiftCardForm onSuccess={handleServiceSuccess} />}
+          {serviceModal === 'crypto' && <CryptoForm onSuccess={handleServiceSuccess} />}
+          {serviceModal === 'mobile_topup' && <MobileTopUpForm onSuccess={handleServiceSuccess} />}
+          {serviceModal === 'bills' && <BillPaymentForm onSuccess={handleServiceSuccess} />}
+        </DialogContent>
+      </Dialog>
 
       <FloatingChat />
     </div>

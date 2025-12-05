@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, ArrowDownLeft, Gift, TrendingUp, CreditCard, Smartphone, Settings } from "lucide-react";
+import { Plus, ArrowDownLeft, Gift, TrendingUp, CreditCard, Smartphone } from "lucide-react";
 
 interface QuickActionsProps {
   onAction: (action: string) => void;
@@ -14,7 +14,6 @@ export function QuickActions({ onAction }: QuickActionsProps) {
     { id: 'crypto', label: 'Crypto', icon: TrendingUp, color: 'bg-orange-500/10 text-orange-500 hover:bg-orange-500/20' },
     { id: 'bills', label: 'Pay Bills', icon: CreditCard, color: 'bg-blue-500/10 text-blue-500 hover:bg-blue-500/20' },
     { id: 'mobile_topup', label: 'Mobile Top-up', icon: Smartphone, color: 'bg-green-500/10 text-green-500 hover:bg-green-500/20' },
-    { id: 'admin', label: 'Admin', icon: Settings, color: 'bg-red-500/10 text-red-500 hover:bg-red-500/20' }
   ];
 
   return (

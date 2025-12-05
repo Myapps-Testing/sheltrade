@@ -3,12 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { processCryptoTrade, getCryptoRates } from '@/apis/crypto';
-import { Bitcoin, ArrowUpDown, Loader2, TrendingUp, TrendingDown } from 'lucide-react';
+import { Bitcoin, ArrowUpDown, Loader2, TrendingUp, TrendingDown, ShieldCheck, Clock, Wallet } from 'lucide-react';
 
 const cryptoCurrencies = [
   { id: 'BTC', name: 'Bitcoin', symbol: 'BTC', icon: '₿' },
@@ -67,8 +66,8 @@ export const CryptoForm = ({ onSuccess }: CryptoFormProps) => {
       return;
     }
 
-    if (tradeType === 'sell' && !walletAddress) {
-      toast({ title: 'Error', description: 'Please enter your wallet address', variant: 'destructive' });
+    if (tradeType === 'buy' && !walletAddress) {
+      toast({ title: 'Error', description: 'Please enter your wallet address to receive crypto', variant: 'destructive' });
       return;
     }
 
@@ -78,11 +77,16 @@ export const CryptoForm = ({ onSuccess }: CryptoFormProps) => {
         cryptoType,
         amount: parseFloat(amount),
         tradeType,
-        walletAddress: tradeType === 'sell' ? walletAddress : undefined,
+        walletAddress: walletAddress || undefined,
       });
 
       if (result.success) {
-        toast({ title: 'Success', description: result.message });
+        toast({ 
+          title: 'Submitted to Escrow', 
+          description: tradeType === 'buy' 
+            ? 'Your purchase order has been placed. Crypto will be sent once payment is confirmed.'
+            : 'Your sell order has been placed. You will be credited once the crypto is received.'
+        });
         onSuccess?.();
         setAmount('');
         setWalletAddress('');
@@ -103,7 +107,7 @@ export const CryptoForm = ({ onSuccess }: CryptoFormProps) => {
           <Bitcoin className="h-5 w-5" />
           Crypto Trading
         </CardTitle>
-        <CardDescription>Buy or sell cryptocurrency instantly</CardDescription>
+        <CardDescription>Buy or sell cryptocurrency securely with escrow protection</CardDescription>
       </CardHeader>
       <CardContent>
         <Tabs value={tradeType} onValueChange={(v: string) => setTradeType(v as 'buy' | 'sell')}>
@@ -115,6 +119,19 @@ export const CryptoForm = ({ onSuccess }: CryptoFormProps) => {
               <TrendingDown className="h-4 w-4" /> Sell
             </TabsTrigger>
           </TabsList>
+
+          {/* Escrow Notice */}
+          <div className="p-3 border rounded-lg bg-primary/5 border-primary/20 mb-4">
+            <div className="flex items-center gap-2 text-primary">
+              <ShieldCheck className="h-4 w-4" />
+              <span className="font-medium text-sm">Escrow Protected Trade</span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {tradeType === 'buy' 
+                ? 'Your funds are held securely until you receive your crypto.'
+                : 'Your crypto is held securely until payment is confirmed.'}
+            </p>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Crypto Selection */}
@@ -162,9 +179,25 @@ export const CryptoForm = ({ onSuccess }: CryptoFormProps) => {
                   type="number"
                   placeholder="Enter amount in USD"
                   value={amount}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAmount(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAmount(e.target.value)}
                   min={10}
                 />
+              </div>
+
+              {/* Wallet Address for Buy */}
+              <div className="space-y-2">
+                <Label htmlFor="buyWalletAddress">Your {selectedCrypto?.symbol} Wallet Address</Label>
+                <Input
+                  id="buyWalletAddress"
+                  type="text"
+                  placeholder="Enter wallet address to receive crypto"
+                  value={walletAddress}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWalletAddress(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Wallet className="h-3 w-3" />
+                  Crypto will be sent here after payment confirmation
+                </p>
               </div>
 
               {/* Estimated Crypto */}
@@ -194,16 +227,18 @@ export const CryptoForm = ({ onSuccess }: CryptoFormProps) => {
                 />
               </div>
 
-              {/* Wallet Address */}
-              <div className="space-y-2">
-                <Label htmlFor="walletAddress">Your {selectedCrypto?.symbol} Wallet Address</Label>
-                <Input
-                  id="walletAddress"
-                  type="text"
-                  placeholder="Enter your wallet address"
-                  value={walletAddress}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWalletAddress(e.target.value)}
-                />
+              {/* Platform Wallet Address */}
+              <div className="p-3 bg-muted/50 rounded-lg space-y-2">
+                <Label className="text-sm">Send {selectedCrypto?.symbol} to:</Label>
+                <div className="p-2 bg-background rounded border font-mono text-xs break-all">
+                  {cryptoType === 'BTC' && '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa'}
+                  {cryptoType === 'ETH' && '0x742d35Cc6634C0532925a3b844Bc9e7595f...'}
+                  {cryptoType === 'USDT' && 'TN3W4H6rK2ce4vX9YnFQHwKENnHjoxb3m9'}
+                  {cryptoType === 'BNB' && 'bnb1grpf0955h0ykzq3ar5nmum7y6gdfl6lxfn46h2'}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Send the exact amount to this address. Your wallet will be credited after confirmation.
+                </p>
               </div>
 
               {/* Estimated USD */}
@@ -218,6 +253,16 @@ export const CryptoForm = ({ onSuccess }: CryptoFormProps) => {
                 </div>
               )}
             </TabsContent>
+
+            {/* Processing Time */}
+            <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
+              <Clock className="h-4 w-4" />
+              <span>
+                {tradeType === 'buy' 
+                  ? 'Crypto sent within 30 minutes of payment confirmation'
+                  : 'Credited within 30 minutes of blockchain confirmation'}
+              </span>
+            </div>
 
             <Button type="submit" className="w-full" disabled={loading || loadingRates}>
               {loading ? (

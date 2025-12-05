@@ -1,8 +1,15 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Wallet, CreditCard, Bell, User, LogOut } from "lucide-react";
+import { Menu, X, Wallet, Bell, User, LogOut, History, Settings } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface NavbarProps {
   user?: {
@@ -44,9 +51,14 @@ export function Navbar({ user, onLogin, onLogout }: NavbarProps) {
               Contact
             </button>
             {user && (
-              <button onClick={() => navigate('/dashboard')} className="text-muted-foreground hover:text-primary transition-colors">
-                Dashboard
-              </button>
+              <>
+                <button onClick={() => navigate('/dashboard')} className="text-muted-foreground hover:text-primary transition-colors">
+                  Dashboard
+                </button>
+                <button onClick={() => navigate('/transactions')} className="text-muted-foreground hover:text-primary transition-colors">
+                  Transactions
+                </button>
+              </>
             )}
           </div>
 
@@ -57,19 +69,35 @@ export function Navbar({ user, onLogin, onLogout }: NavbarProps) {
                 <Button variant="ghost" size="icon">
                   <Bell className="w-5 h-5" />
                 </Button>
-                <div className="flex items-center space-x-3">
-                  <Avatar>
-                    <AvatarImage src={user.avatar} />
-                    <AvatarFallback>{user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium">{user.name}</span>
-                    <span className="text-xs text-muted-foreground">{user.email}</span>
-                  </div>
-                </div>
-                <Button variant="ghost" size="icon" onClick={onLogout}>
-                  <LogOut className="w-5 h-5" />
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
+                      <Avatar>
+                        <AvatarImage src={user.avatar} />
+                        <AvatarFallback>{user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col text-left">
+                        <span className="text-sm font-medium">{user.name}</span>
+                        <span className="text-xs text-muted-foreground">{user.email}</span>
+                      </div>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuItem onClick={() => navigate('/profile')}>
+                      <Settings className="mr-2 h-4 w-4" />
+                      Profile Settings
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/transactions')}>
+                      <History className="mr-2 h-4 w-4" />
+                      Transaction History
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={onLogout} className="text-destructive">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Sign Out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </>
             ) : (
               <div className="flex items-center space-x-2">
@@ -109,9 +137,17 @@ export function Navbar({ user, onLogin, onLogout }: NavbarProps) {
                 Contact
               </button>
               {user && (
-                <button onClick={() => navigate('/dashboard')} className="text-muted-foreground hover:text-primary transition-colors px-2 py-1 text-left">
-                  Dashboard
-                </button>
+                <>
+                  <button onClick={() => navigate('/dashboard')} className="text-muted-foreground hover:text-primary transition-colors px-2 py-1 text-left">
+                    Dashboard
+                  </button>
+                  <button onClick={() => navigate('/transactions')} className="text-muted-foreground hover:text-primary transition-colors px-2 py-1 text-left">
+                    Transactions
+                  </button>
+                  <button onClick={() => navigate('/profile')} className="text-muted-foreground hover:text-primary transition-colors px-2 py-1 text-left">
+                    Profile Settings
+                  </button>
+                </>
               )}
               
               {user ? (

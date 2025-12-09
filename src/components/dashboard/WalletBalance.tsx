@@ -1,8 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Eye, EyeOff, Plus, ArrowUpRight, ArrowDownLeft } from "lucide-react";
+import { Eye, EyeOff, Plus, ArrowDownLeft } from "lucide-react";
 import { useState } from "react";
+import { CurrencySelector } from "@/components/ui/currency-selector";
+import { useCurrency } from "@/hooks/useCurrency";
 
 interface WalletBalanceProps {
   balance: number;
@@ -14,27 +16,32 @@ interface WalletBalanceProps {
 
 export function WalletBalance({ balance, currency = "USD", pendingBalance = 0, onAddFunds, onWithdraw }: WalletBalanceProps) {
   const [showBalance, setShowBalance] = useState(true);
+  const { selectedCurrency, setSelectedCurrency, formatAmount, convertAmount } = useCurrency();
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency,
-    }).format(amount);
-  };
+  // Convert balance to selected currency
+  const displayBalance = convertAmount(balance, currency, selectedCurrency);
+  const displayPending = convertAmount(pendingBalance, currency, selectedCurrency);
 
   return (
     <Card className="gradient-card border-0 shadow-xl">
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg font-semibold">Wallet Balance</CardTitle>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setShowBalance(!showBalance)}
-            className="hover:bg-white/10"
-          >
-            {showBalance ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-          </Button>
+          <div className="flex items-center gap-2">
+            <CurrencySelector 
+              value={selectedCurrency}
+              onValueChange={setSelectedCurrency}
+              className="h-8"
+            />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowBalance(!showBalance)}
+              className="hover:bg-white/10"
+            >
+              {showBalance ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -42,8 +49,13 @@ export function WalletBalance({ balance, currency = "USD", pendingBalance = 0, o
           <div>
             <p className="text-sm text-muted-foreground mb-1">Available Balance</p>
             <p className="text-3xl font-bold text-foreground">
-              {showBalance ? formatCurrency(balance) : "••••••"}
+              {showBalance ? formatAmount(displayBalance, selectedCurrency) : "••••••"}
             </p>
+            {selectedCurrency !== currency && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Original: {formatAmount(balance, currency)}
+              </p>
+            )}
           </div>
 
           {pendingBalance > 0 && (
@@ -51,7 +63,7 @@ export function WalletBalance({ balance, currency = "USD", pendingBalance = 0, o
               <div>
                 <p className="text-sm font-medium text-warning">Pending Balance</p>
                 <p className="text-lg font-semibold text-warning">
-                  {showBalance ? formatCurrency(pendingBalance) : "••••••"}
+                  {showBalance ? formatAmount(displayPending, selectedCurrency) : "••••••"}
                 </p>
               </div>
               <Badge variant="outline" className="border-warning text-warning">

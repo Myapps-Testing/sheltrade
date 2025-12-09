@@ -142,10 +142,10 @@ export default function ProfileSettings() {
   } : undefined;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background-start to-background-end">
+    <div className="min-h-screen bg-gradient-to-br from-background-start to-background-end overflow-y-auto">
       <Navbar user={user} onLogout={handleLogout} />
       
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
           <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')}>

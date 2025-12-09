@@ -33,35 +33,32 @@ export function useAuth() {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Check if email is verified and auto-sign in
-          if (session.user.email_confirmed_at) {
-            // Fetch user profile and wallet
-            setTimeout(async () => {
-              try {
-                const [profileResponse, walletResponse] = await Promise.all([
-                  supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('user_id', session.user.id)
-                    .maybeSingle(),
-                  supabase
-                    .from('wallets')
-                    .select('*')
-                    .eq('user_id', session.user.id)
-                    .maybeSingle()
-                ]);
+          // Fetch user profile and wallet
+          setTimeout(async () => {
+            try {
+              const [profileResponse, walletResponse] = await Promise.all([
+                supabase
+                  .from('profiles')
+                  .select('*')
+                  .eq('user_id', session.user.id)
+                  .maybeSingle(),
+                supabase
+                  .from('wallets')
+                  .select('*')
+                  .eq('user_id', session.user.id)
+                  .maybeSingle()
+              ]);
 
-                if (profileResponse.data) {
-                  setProfile(profileResponse.data);
-                }
-                if (walletResponse.data) {
-                  setWallet(walletResponse.data);
-                }
-              } catch (error) {
-                console.error('Error fetching user data:', error);
+              if (profileResponse.data) {
+                setProfile(profileResponse.data);
               }
-            }, 0);
-          }
+              if (walletResponse.data) {
+                setWallet(walletResponse.data);
+              }
+            } catch (error) {
+              console.error('Error fetching user data:', error);
+            }
+          }, 0);
         } else {
           setProfile(null);
           setWallet(null);
@@ -82,12 +79,65 @@ export function useAuth() {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Set up realtime subscription for wallet updates
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('wallet-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'wallets',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          if (payload.new && typeof payload.new === 'object') {
+            setWallet(payload.new as Wallet);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
+  // Set up realtime subscription for transaction updates (to refresh wallet)
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('transaction-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'transactions',
+          filter: `user_id=eq.${user.id}`
+        },
+        () => {
+          // Refresh wallet when transactions change
+          refreshWallet();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
   const signUp = async (email: string, password: string, userData: {
     username: string;
     first_name: string;
     last_name: string;
   }) => {
-    const redirectUrl = `${window.location.origin}/`;
+    const redirectUrl = `${window.location.origin}/dashboard`;
     
     const { error } = await supabase.auth.signUp({
       email,
@@ -114,7 +164,7 @@ export function useAuth() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/`
+        redirectTo: `${window.location.origin}/dashboard`
       }
     });
     
@@ -125,7 +175,7 @@ export function useAuth() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'facebook',
       options: {
-        redirectTo: `${window.location.origin}/`
+        redirectTo: `${window.location.origin}/dashboard`
       }
     });
     

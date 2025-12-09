@@ -404,6 +404,7 @@ export type Database = {
           account_type: string | null
           bank_name: string
           created_at: string
+          currency: string
           id: string
           is_active: boolean
           updated_at: string
@@ -414,6 +415,7 @@ export type Database = {
           account_type?: string | null
           bank_name: string
           created_at?: string
+          currency?: string
           id?: string
           is_active?: boolean
           updated_at?: string
@@ -424,6 +426,7 @@ export type Database = {
           account_type?: string | null
           bank_name?: string
           created_at?: string
+          currency?: string
           id?: string
           is_active?: boolean
           updated_at?: string

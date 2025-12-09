@@ -123,8 +123,8 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background-start to-background-end flex items-center justify-center px-4 py-8">
-      <div className="w-full max-w-md space-y-6 animate-fade-in">
+    <div className="min-h-screen bg-gradient-to-br from-background-start to-background-end flex items-center justify-center px-4 py-8 overflow-y-auto">
+      <div className="w-full max-w-md space-y-6 animate-fade-in my-8">
         {/* Logo */}
         <div className="text-center space-y-2">
           <div className="mx-auto w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center shadow-glow">

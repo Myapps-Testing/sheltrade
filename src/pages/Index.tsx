@@ -8,8 +8,9 @@ export default function Index() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Redirect authenticated users to dashboard
     if (!loading && user) {
-      navigate('/dashboard');
+      navigate('/dashboard', { replace: true });
     }
   }, [user, loading, navigate]);
 
@@ -22,6 +23,11 @@ export default function Index() {
         </div>
       </div>
     );
+  }
+
+  // Only show landing page for non-authenticated users
+  if (user) {
+    return null; // Will redirect
   }
 
   return <Landing />;

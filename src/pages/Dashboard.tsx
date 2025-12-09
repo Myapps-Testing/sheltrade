@@ -340,7 +340,7 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background-start to-background-end">
+    <div className="min-h-screen bg-gradient-to-br from-background-start to-background-end overflow-y-auto">
       <Navbar 
         user={user && profile ? {
           name: `${profile.first_name} ${profile.last_name}`,
@@ -350,7 +350,7 @@ export default function Dashboard() {
         onLogout={handleLogout}
       />
       
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
         {currentView === "dashboard" && renderDashboard()}
         {currentView === "giftcards" && renderGiftCards()}
       </main>

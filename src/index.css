@@ -131,9 +131,23 @@
     @apply border-border;
   }
 
-  body {
+  html, body {
     @apply bg-background text-foreground;
     font-family: 'Ubuntu', sans-serif;
+    height: 100%;
+    overflow-x: hidden;
+  }
+
+  /* Enable smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Main scrollable container */
+  #root {
+    min-height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 
   /* Utility Classes */
@@ -159,6 +173,12 @@
 
   .transition-all {
     transition: var(--transition-all);
+  }
+
+  /* Scrollable containers */
+  .scrollable-container {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   /* Scrollbar Styling */

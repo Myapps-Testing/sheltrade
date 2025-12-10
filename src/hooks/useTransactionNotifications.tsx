@@ -32,6 +32,41 @@ const typeLabels: Record<string, string> = {
   mobile_topup: 'Mobile Top-Up',
 };
 
+const saveNotification = async (
+  userId: string,
+  title: string,
+  message: string,
+  type: string,
+  transactionId?: string
+) => {
+  try {
+    await supabase.from('user_notifications').insert({
+      user_id: userId,
+      title,
+      message,
+      type,
+      transaction_id: transactionId,
+      is_read: false,
+    });
+  } catch (error) {
+    console.error('Failed to save notification:', error);
+  }
+};
+
+// Request push notification permission and show notification
+const showPushNotification = async (title: string, body: string) => {
+  if (!('Notification' in window)) return;
+  
+  if (Notification.permission === 'granted') {
+    new Notification(title, { body, icon: '/logo.png' });
+  } else if (Notification.permission !== 'denied') {
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') {
+      new Notification(title, { body, icon: '/logo.png' });
+    }
+  }
+};
+
 export function useTransactionNotifications() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -67,7 +102,7 @@ export function useTransactionNotifications() {
           table: 'transactions',
           filter: `user_id=eq.${user.id}`
         },
-        (payload) => {
+        async (payload) => {
           const newTx = payload.new as Transaction;
           const oldStatus = previousStatusRef.current.get(newTx.id);
           
@@ -84,12 +119,27 @@ export function useTransactionNotifications() {
               currency: newTx.currency,
             }).format(newTx.amount);
 
+            const description = `Your ${typeLabel} of ${formattedAmount} has been ${newTx.status}.${newTx.description ? ` ${newTx.description}` : ''}`;
+
+            // Show toast notification
             toast({
               title: statusInfo.title,
-              description: `Your ${typeLabel} of ${formattedAmount} has been ${newTx.status}.${newTx.description ? ` ${newTx.description}` : ''}`,
+              description,
               variant: statusInfo.variant,
               duration: 6000,
             });
+
+            // Save to database
+            await saveNotification(
+              user.id,
+              statusInfo.title,
+              description,
+              'transaction',
+              newTx.id
+            );
+
+            // Show push notification
+            await showPushNotification(statusInfo.title, description);
           }
           
           // Update the cached status
@@ -104,7 +154,7 @@ export function useTransactionNotifications() {
           table: 'transactions',
           filter: `user_id=eq.${user.id}`
         },
-        (payload) => {
+        async (payload) => {
           const newTx = payload.new as Transaction;
           const typeLabel = typeLabels[newTx.type] || newTx.type;
           
@@ -115,11 +165,20 @@ export function useTransactionNotifications() {
 
           // Only notify for new transactions (not initial load)
           if (previousStatusRef.current.size > 0) {
+            const title = '🆕 New Transaction';
+            const description = `${typeLabel} of ${formattedAmount} has been initiated.`;
+
             toast({
-              title: '🆕 New Transaction',
-              description: `${typeLabel} of ${formattedAmount} has been initiated.`,
+              title,
+              description,
               duration: 4000,
             });
+
+            // Save to database
+            await saveNotification(user.id, title, description, 'transaction', newTx.id);
+
+            // Show push notification
+            await showPushNotification(title, description);
           }
           
           previousStatusRef.current.set(newTx.id, newTx.status);
@@ -131,4 +190,19 @@ export function useTransactionNotifications() {
       supabase.removeChannel(channel);
     };
   }, [user, toast]);
+}
+
+// Hook to request push notification permission on app load
+export function usePushNotificationPermission() {
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      // Request permission when user interacts with the page
+      const requestPermission = () => {
+        Notification.requestPermission();
+        document.removeEventListener('click', requestPermission);
+      };
+      document.addEventListener('click', requestPermission);
+      return () => document.removeEventListener('click', requestPermission);
+    }
+  }, []);
 }

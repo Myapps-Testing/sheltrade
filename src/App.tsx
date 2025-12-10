@@ -14,6 +14,7 @@ import License from '@/pages/License';
 import Services from '@/pages/Services';
 import ProfileSettings from '@/pages/ProfileSettings';
 import TransactionHistory from '@/pages/TransactionHistory';
+import Notifications from '@/pages/Notifications';
 
 function App() {
   return (
@@ -51,6 +52,11 @@ function App() {
             <Route path="/transactions" element={
               <ProtectedRoute>
                 <TransactionHistory />
+              </ProtectedRoute>
+            } />
+            <Route path="/notifications" element={
+              <ProtectedRoute>
+                <Notifications />
               </ProtectedRoute>
             } />
             <Route path="*" element={<NotFound />} />

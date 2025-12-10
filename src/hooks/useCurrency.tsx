@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext } from 'react';
+import { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface CurrencyContextType {
@@ -8,10 +8,12 @@ interface CurrencyContextType {
   loading: boolean;
   formatAmount: (amount: number, currency?: string) => string;
   convertAmount: (amount: number, fromCurrency: string, toCurrency: string) => number;
+  exchangeRates: Record<string, number>;
+  refreshRates: () => Promise<void>;
 }
 
-// Simple exchange rates (in production, fetch from API)
-const EXCHANGE_RATES: Record<string, number> = {
+// Fallback rates in case API fails
+const FALLBACK_RATES: Record<string, number> = {
   'USD': 1,
   'NGN': 1550,
   'EUR': 0.92,
@@ -24,14 +26,15 @@ export function useCurrencyData() {
   const [currencies, setCurrencies] = useState<string[]>(['USD', 'NGN']);
   const [selectedCurrency, setSelectedCurrency] = useState<string>('USD');
   const [loading, setLoading] = useState(true);
+  const [exchangeRates, setExchangeRates] = useState<Record<string, number>>(FALLBACK_RATES);
 
   useEffect(() => {
     loadCurrencies();
+    fetchLiveRates();
   }, []);
 
   const loadCurrencies = async () => {
     try {
-      // First try to get currencies from bank details
       const { data, error } = await supabase
         .from('sheltradeadmin_bankdetail')
         .select('currency')
@@ -39,10 +42,8 @@ export function useCurrencyData() {
       
       if (error) {
         console.error('Error loading currencies:', error);
-        // Fallback to default currencies
         setCurrencies(['USD', 'NGN', 'EUR', 'GBP']);
       } else if (data && data.length > 0) {
-        // Get unique currencies - cast to handle any type
         const uniqueCurrencies = [...new Set(data.map(d => (d as { currency: string }).currency))].filter(Boolean);
         if (uniqueCurrencies.length > 0) {
           setCurrencies(uniqueCurrencies);
@@ -55,7 +56,38 @@ export function useCurrencyData() {
     }
   };
 
-  const formatAmount = (amount: number, currency?: string) => {
+  const fetchLiveRates = useCallback(async () => {
+    try {
+      // Using ExchangeRate-API free tier (no key required for basic usage)
+      const response = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch exchange rates');
+      }
+      
+      const data = await response.json();
+      
+      if (data && data.rates) {
+        setExchangeRates({
+          'USD': 1,
+          'NGN': data.rates.NGN || FALLBACK_RATES.NGN,
+          'EUR': data.rates.EUR || FALLBACK_RATES.EUR,
+          'GBP': data.rates.GBP || FALLBACK_RATES.GBP,
+          'CAD': data.rates.CAD || FALLBACK_RATES.CAD,
+          'AUD': data.rates.AUD || FALLBACK_RATES.AUD,
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching live exchange rates, using fallback:', error);
+      setExchangeRates(FALLBACK_RATES);
+    }
+  }, []);
+
+  const refreshRates = useCallback(async () => {
+    await fetchLiveRates();
+  }, [fetchLiveRates]);
+
+  const formatAmount = useCallback((amount: number, currency?: string) => {
     const curr = currency || selectedCurrency;
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -63,18 +95,18 @@ export function useCurrencyData() {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(amount);
-  };
+  }, [selectedCurrency]);
 
-  const convertAmount = (amount: number, fromCurrency: string, toCurrency: string) => {
+  const convertAmount = useCallback((amount: number, fromCurrency: string, toCurrency: string) => {
     if (fromCurrency === toCurrency) return amount;
     
-    const fromRate = EXCHANGE_RATES[fromCurrency] || 1;
-    const toRate = EXCHANGE_RATES[toCurrency] || 1;
+    const fromRate = exchangeRates[fromCurrency] || 1;
+    const toRate = exchangeRates[toCurrency] || 1;
     
     // Convert to USD first, then to target currency
     const amountInUSD = amount / fromRate;
     return amountInUSD * toRate;
-  };
+  }, [exchangeRates]);
 
   return {
     currencies,
@@ -83,6 +115,8 @@ export function useCurrencyData() {
     loading,
     formatAmount,
     convertAmount,
+    exchangeRates,
+    refreshRates,
   };
 }
 

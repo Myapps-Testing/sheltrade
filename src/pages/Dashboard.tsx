@@ -275,7 +275,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                 ))}
-                <Button variant="ghost" className="w-full">
+                <Button variant="ghost" className="w-full" onClick={() => navigate('/notifications')}>
                   View All Notifications
                 </Button>
               </div>

@@ -66,7 +66,7 @@ export function Navbar({ user, onLogin, onLogout }: NavbarProps) {
           <div className="hidden md:flex items-center space-x-4">
             {user ? (
               <>
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" onClick={() => navigate('/notifications')}>
                   <Bell className="w-5 h-5" />
                 </Button>
                 <DropdownMenu>

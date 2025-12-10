@@ -9,24 +9,21 @@ import { Bell, Check, CheckCheck, ArrowLeft, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useCurrency } from "@/hooks/useCurrency";
 
 interface Notification {
   id: string;
   title: string;
   message: string;
-  type: 'success' | 'info' | 'warning' | 'error';
+  type: string;
   is_read: boolean;
   created_at: string;
-  transaction_id?: string;
-  metadata?: Record<string, any>;
+  transaction_id: string | null;
 }
 
 export default function Notifications() {
   const navigate = useNavigate();
   const { user: authUser, profile, signOut } = useAuth();
   const { toast } = useToast();
-  const { formatAmount } = useCurrency();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -34,6 +31,7 @@ export default function Notifications() {
   useEffect(() => {
     if (authUser) {
       loadNotifications();
+      subscribeToNotifications();
     }
   }, [authUser]);
 
@@ -42,29 +40,15 @@ export default function Notifications() {
     
     setLoading(true);
     try {
-      // Get transactions and convert them to notifications
-      const { data: transactions, error } = await supabase
-        .from('transactions')
+      const { data, error } = await supabase
+        .from('user_notifications')
         .select('*')
         .eq('user_id', authUser.id)
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(100);
       
       if (error) throw error;
-
-      // Convert transactions to notification format
-      const notifs: Notification[] = (transactions || []).map(tx => ({
-        id: tx.id,
-        title: getTransactionTitle(tx.type, tx.status),
-        message: getTransactionMessage(tx),
-        type: getNotificationType(tx.status),
-        is_read: false, // We'd track this in a separate table in production
-        created_at: tx.created_at,
-        transaction_id: tx.id,
-        metadata: { amount: tx.amount, currency: tx.currency, status: tx.status }
-      }));
-
-      setNotifications(notifs);
+      setNotifications(data || []);
     } catch (error) {
       console.error('Error loading notifications:', error);
     } finally {
@@ -72,37 +56,28 @@ export default function Notifications() {
     }
   };
 
-  const getTransactionTitle = (type: string, status: string) => {
-    const typeLabels: Record<string, string> = {
-      'deposit': 'Deposit',
-      'withdrawal': 'Withdrawal',
-      'giftcard_purchase': 'Gift Card Purchase',
-      'crypto_buy': 'Crypto Buy',
-      'crypto_sell': 'Crypto Sell',
-      'bill_payment': 'Bill Payment',
-      'mobile_topup': 'Mobile Top-Up',
+  const subscribeToNotifications = () => {
+    if (!authUser) return;
+
+    const channel = supabase
+      .channel('user-notifications-page')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'user_notifications',
+          filter: `user_id=eq.${authUser.id}`
+        },
+        (payload) => {
+          setNotifications(prev => [payload.new as Notification, ...prev]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
     };
-    return `${typeLabels[type] || type} - ${status.charAt(0).toUpperCase() + status.slice(1)}`;
-  };
-
-  const getTransactionMessage = (tx: any) => {
-    const amount = formatAmount(tx.amount, tx.currency);
-    return tx.description || `Transaction of ${amount}`;
-  };
-
-  const getNotificationType = (status: string): 'success' | 'info' | 'warning' | 'error' => {
-    switch (status) {
-      case 'completed':
-      case 'approved':
-        return 'success';
-      case 'pending':
-        return 'info';
-      case 'failed':
-      case 'rejected':
-        return 'error';
-      default:
-        return 'info';
-    }
   };
 
   const getTypeBadgeVariant = (type: string) => {
@@ -132,17 +107,66 @@ export default function Notifications() {
     }
   };
 
-  const markAsRead = () => {
-    setNotifications(prev => 
-      prev.map(n => selectedIds.has(n.id) ? { ...n, is_read: true } : n)
-    );
-    toast({ title: "Marked as read", description: `${selectedIds.size} notifications marked as read` });
-    setSelectedIds(new Set());
+  const markAsRead = async () => {
+    if (!authUser || selectedIds.size === 0) return;
+
+    try {
+      const { error } = await supabase
+        .from('user_notifications')
+        .update({ is_read: true })
+        .in('id', Array.from(selectedIds));
+
+      if (error) throw error;
+
+      setNotifications(prev => 
+        prev.map(n => selectedIds.has(n.id) ? { ...n, is_read: true } : n)
+      );
+      toast({ title: "Marked as read", description: `${selectedIds.size} notifications marked as read` });
+      setSelectedIds(new Set());
+    } catch (error) {
+      console.error('Error marking as read:', error);
+      toast({ title: "Error", description: "Failed to mark notifications as read", variant: "destructive" });
+    }
   };
 
-  const markAllAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-    toast({ title: "All marked as read" });
+  const markAllAsRead = async () => {
+    if (!authUser) return;
+
+    try {
+      const { error } = await supabase
+        .from('user_notifications')
+        .update({ is_read: true })
+        .eq('user_id', authUser.id)
+        .eq('is_read', false);
+
+      if (error) throw error;
+
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      toast({ title: "All marked as read" });
+    } catch (error) {
+      console.error('Error marking all as read:', error);
+      toast({ title: "Error", description: "Failed to mark all as read", variant: "destructive" });
+    }
+  };
+
+  const deleteSelected = async () => {
+    if (!authUser || selectedIds.size === 0) return;
+
+    try {
+      const { error } = await supabase
+        .from('user_notifications')
+        .delete()
+        .in('id', Array.from(selectedIds));
+
+      if (error) throw error;
+
+      setNotifications(prev => prev.filter(n => !selectedIds.has(n.id)));
+      toast({ title: "Deleted", description: `${selectedIds.size} notifications deleted` });
+      setSelectedIds(new Set());
+    } catch (error) {
+      console.error('Error deleting notifications:', error);
+      toast({ title: "Error", description: "Failed to delete notifications", variant: "destructive" });
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -191,10 +215,16 @@ export default function Notifications() {
           
           <div className="flex gap-2">
             {selectedIds.size > 0 && (
-              <Button variant="outline" size="sm" onClick={markAsRead}>
-                <Check className="h-4 w-4 mr-2" />
-                Mark as Read ({selectedIds.size})
-              </Button>
+              <>
+                <Button variant="outline" size="sm" onClick={markAsRead}>
+                  <Check className="h-4 w-4 mr-2" />
+                  Mark as Read ({selectedIds.size})
+                </Button>
+                <Button variant="outline" size="sm" onClick={deleteSelected}>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete ({selectedIds.size})
+                </Button>
+              </>
             )}
             <Button variant="outline" size="sm" onClick={markAllAsRead}>
               <CheckCheck className="h-4 w-4 mr-2" />
@@ -248,7 +278,7 @@ export default function Notifications() {
                           </p>
                         </div>
                         <Badge variant={getTypeBadgeVariant(notification.type)} className="shrink-0">
-                          {notification.metadata?.status || notification.type}
+                          {notification.type}
                         </Badge>
                       </div>
                       <div className="flex items-center gap-2 mt-2">

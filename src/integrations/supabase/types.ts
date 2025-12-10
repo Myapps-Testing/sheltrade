@@ -364,6 +364,63 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_preferences: {
+        Row: {
+          created_at: string
+          email_bill_payment: boolean
+          email_deposit: boolean
+          email_enabled: boolean
+          email_giftcard: boolean
+          email_mobile_topup: boolean
+          email_withdrawal: boolean
+          id: string
+          push_bill_payment: boolean
+          push_deposit: boolean
+          push_enabled: boolean
+          push_giftcard: boolean
+          push_mobile_topup: boolean
+          push_withdrawal: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email_bill_payment?: boolean
+          email_deposit?: boolean
+          email_enabled?: boolean
+          email_giftcard?: boolean
+          email_mobile_topup?: boolean
+          email_withdrawal?: boolean
+          id?: string
+          push_bill_payment?: boolean
+          push_deposit?: boolean
+          push_enabled?: boolean
+          push_giftcard?: boolean
+          push_mobile_topup?: boolean
+          push_withdrawal?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email_bill_payment?: boolean
+          email_deposit?: boolean
+          email_enabled?: boolean
+          email_giftcard?: boolean
+          email_mobile_topup?: boolean
+          email_withdrawal?: boolean
+          id?: string
+          push_bill_payment?: boolean
+          push_deposit?: boolean
+          push_enabled?: boolean
+          push_giftcard?: boolean
+          push_mobile_topup?: boolean
+          push_withdrawal?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -539,6 +596,47 @@ export type Database = {
           },
           {
             foreignKeyName: "user_giftcards_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          title: string
+          transaction_id: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message: string
+          title: string
+          transaction_id?: string | null
+          type?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          title?: string
+          transaction_id?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_notifications_transaction_id_fkey"
             columns: ["transaction_id"]
             isOneToOne: false
             referencedRelation: "transactions"

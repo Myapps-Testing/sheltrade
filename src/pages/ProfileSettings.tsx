@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { useNotificationPreferences } from '@/hooks/useNotificationPreferences';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   User, 
@@ -21,13 +22,18 @@ import {
   Save, 
   Loader2,
   ArrowLeft,
-  CheckCircle
+  Wallet,
+  CreditCard,
+  Gift,
+  Zap,
+  Phone
 } from 'lucide-react';
 
 export default function ProfileSettings() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user: authUser, profile, signOut, refreshWallet } = useAuth();
+  const { user: authUser, profile, signOut } = useAuth();
+  const { preferences, loading: prefsLoading, updatePreferences } = useNotificationPreferences();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [firstName, setFirstName] = useState('');
@@ -36,13 +42,6 @@ export default function ProfileSettings() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
-  
-  // Notification preferences
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [pushNotifications, setPushNotifications] = useState(true);
-  const [transactionAlerts, setTransactionAlerts] = useState(true);
-  const [marketingEmails, setMarketingEmails] = useState(false);
-  const [securityAlerts, setSecurityAlerts] = useState(true);
 
   useEffect(() => {
     if (profile) {
@@ -77,14 +76,12 @@ export default function ProfileSettings() {
       const fileName = `${authUser.id}-${Date.now()}.${fileExt}`;
       const filePath = `avatars/${fileName}`;
 
-      // Upload to storage
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
       const { data: urlData } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
@@ -128,6 +125,15 @@ export default function ProfileSettings() {
       toast({ title: 'Error', description: 'Failed to update profile', variant: 'destructive' });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handlePreferenceChange = async (key: string, value: boolean) => {
+    const success = await updatePreferences({ [key]: value });
+    if (success) {
+      toast({ title: 'Saved', description: 'Notification preferences updated' });
+    } else {
+      toast({ title: 'Error', description: 'Failed to update preferences', variant: 'destructive' });
     }
   };
 
@@ -253,93 +259,189 @@ export default function ProfileSettings() {
             </CardContent>
           </Card>
 
-          {/* Notification Preferences */}
+          {/* Push Notification Settings */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Bell className="h-5 w-5" />
-                Notification Preferences
+                <Smartphone className="h-5 w-5" />
+                Push Notifications
               </CardTitle>
-              <CardDescription>Choose how you want to receive notifications</CardDescription>
+              <CardDescription>Choose which transaction types trigger push notifications</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Bell className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="font-medium">Enable Push Notifications</p>
+                    <p className="text-sm text-muted-foreground">Receive alerts even when app is closed</p>
+                  </div>
+                </div>
+                <Switch
+                  checked={preferences?.push_enabled ?? true}
+                  onCheckedChange={(v) => handlePreferenceChange('push_enabled', v)}
+                  disabled={prefsLoading}
+                />
+              </div>
+
+              {preferences?.push_enabled && (
+                <>
+                  <Separator />
+                  <div className="space-y-3 pl-8">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Wallet className="h-4 w-4 text-green-500" />
+                        <span className="text-sm">Deposits</span>
+                      </div>
+                      <Switch
+                        checked={preferences?.push_deposit ?? true}
+                        onCheckedChange={(v) => handlePreferenceChange('push_deposit', v)}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <CreditCard className="h-4 w-4 text-red-500" />
+                        <span className="text-sm">Withdrawals</span>
+                      </div>
+                      <Switch
+                        checked={preferences?.push_withdrawal ?? true}
+                        onCheckedChange={(v) => handlePreferenceChange('push_withdrawal', v)}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Gift className="h-4 w-4 text-purple-500" />
+                        <span className="text-sm">Gift Cards</span>
+                      </div>
+                      <Switch
+                        checked={preferences?.push_giftcard ?? true}
+                        onCheckedChange={(v) => handlePreferenceChange('push_giftcard', v)}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Zap className="h-4 w-4 text-yellow-500" />
+                        <span className="text-sm">Bill Payments</span>
+                      </div>
+                      <Switch
+                        checked={preferences?.push_bill_payment ?? true}
+                        onCheckedChange={(v) => handlePreferenceChange('push_bill_payment', v)}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Phone className="h-4 w-4 text-blue-500" />
+                        <span className="text-sm">Mobile Top-Up</span>
+                      </div>
+                      <Switch
+                        checked={preferences?.push_mobile_topup ?? true}
+                        onCheckedChange={(v) => handlePreferenceChange('push_mobile_topup', v)}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Email Notification Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Mail className="h-5 w-5" />
+                Email Notifications
+              </CardTitle>
+              <CardDescription>Choose which transaction types trigger email alerts</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Mail className="h-5 w-5 text-muted-foreground" />
                   <div>
-                    <p className="font-medium">Email Notifications</p>
-                    <p className="text-sm text-muted-foreground">Receive updates via email</p>
+                    <p className="font-medium">Enable Email Notifications</p>
+                    <p className="text-sm text-muted-foreground">Receive transaction alerts via email</p>
                   </div>
                 </div>
                 <Switch
-                  checked={emailNotifications}
-                  onCheckedChange={setEmailNotifications}
+                  checked={preferences?.email_enabled ?? true}
+                  onCheckedChange={(v) => handlePreferenceChange('email_enabled', v)}
+                  disabled={prefsLoading}
                 />
               </div>
 
-              <Separator />
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Smartphone className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="font-medium">Push Notifications</p>
-                    <p className="text-sm text-muted-foreground">Receive push notifications on your device</p>
+              {preferences?.email_enabled && (
+                <>
+                  <Separator />
+                  <div className="space-y-3 pl-8">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Wallet className="h-4 w-4 text-green-500" />
+                        <span className="text-sm">Deposits</span>
+                      </div>
+                      <Switch
+                        checked={preferences?.email_deposit ?? true}
+                        onCheckedChange={(v) => handlePreferenceChange('email_deposit', v)}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <CreditCard className="h-4 w-4 text-red-500" />
+                        <span className="text-sm">Withdrawals</span>
+                      </div>
+                      <Switch
+                        checked={preferences?.email_withdrawal ?? true}
+                        onCheckedChange={(v) => handlePreferenceChange('email_withdrawal', v)}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Gift className="h-4 w-4 text-purple-500" />
+                        <span className="text-sm">Gift Cards</span>
+                      </div>
+                      <Switch
+                        checked={preferences?.email_giftcard ?? true}
+                        onCheckedChange={(v) => handlePreferenceChange('email_giftcard', v)}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Zap className="h-4 w-4 text-yellow-500" />
+                        <span className="text-sm">Bill Payments</span>
+                      </div>
+                      <Switch
+                        checked={preferences?.email_bill_payment ?? false}
+                        onCheckedChange={(v) => handlePreferenceChange('email_bill_payment', v)}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Phone className="h-4 w-4 text-blue-500" />
+                        <span className="text-sm">Mobile Top-Up</span>
+                      </div>
+                      <Switch
+                        checked={preferences?.email_mobile_topup ?? false}
+                        onCheckedChange={(v) => handlePreferenceChange('email_mobile_topup', v)}
+                      />
+                    </div>
                   </div>
-                </div>
-                <Switch
-                  checked={pushNotifications}
-                  onCheckedChange={setPushNotifications}
-                />
-              </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
 
-              <Separator />
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="font-medium">Transaction Alerts</p>
-                    <p className="text-sm text-muted-foreground">Get notified for all transactions</p>
-                  </div>
-                </div>
-                <Switch
-                  checked={transactionAlerts}
-                  onCheckedChange={setTransactionAlerts}
-                />
-              </div>
-
-              <Separator />
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Shield className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="font-medium">Security Alerts</p>
-                    <p className="text-sm text-muted-foreground">Important security notifications</p>
-                  </div>
-                </div>
-                <Switch
-                  checked={securityAlerts}
-                  onCheckedChange={setSecurityAlerts}
-                />
-              </div>
-
-              <Separator />
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Mail className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="font-medium">Marketing Emails</p>
-                    <p className="text-sm text-muted-foreground">Receive promotional offers and updates</p>
-                  </div>
-                </div>
-                <Switch
-                  checked={marketingEmails}
-                  onCheckedChange={setMarketingEmails}
-                />
-              </div>
+          {/* Security */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Security
+              </CardTitle>
+              <CardDescription>Manage your account security</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button variant="outline" onClick={handleLogout}>
+                Sign Out
+              </Button>
             </CardContent>
           </Card>
 
